@@ -60,6 +60,11 @@ def index():
 		'path': plugin.url_for('list_linetvchannels', churl="default", type='parent', total_eps='default'),
 		'is_playable': False
 	}]
+	viutvlst = [{
+		'label': 'Viutv channels',
+		'path': plugin.url_for('list_viutvchannels', churl="default", type='parent'),
+		'is_playable': False
+	}]
 	pokulst = [{
 		'label': 'Poku channels',
 		'path': plugin.url_for('list_pokuchannels', churl="default", type='parent'),
@@ -84,7 +89,7 @@ def index():
 		'path': plugin.url_for('nextviewmode'),
 		'is_playable': False
 	},]
-	return plugin.finish(hamichlst+linetodaylst+maplestagelst+linetvlst+pokulst+dramaqlst+directplaylst) #view_mode=50
+	return plugin.finish(hamichlst+linetodaylst+maplestagelst+linetvlst+viutvlst+pokulst+dramaqlst+directplaylst) #view_mode=50
 
 '''
 #xbmc.executebuiltin('Container.SetViewMode(%s)' % 55)
@@ -135,17 +140,6 @@ def list_linetodaychannels():
 	} for c in channels]
 	length_of_ch = str(len(channels))
 	return plugin.finish(channels)
-
-
-#https://ewcdn14.nowe.com/session/p8-5-f9faefbc85c-318d3fad569f91c/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=64115504543cf37b453522b15e9d1f54_1590492587
-#https://ewcdn13.nowe.com/session/p8-3-37e14e40349-c4ae989921b1c8d/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=45004cf6c70e3c78068506ad52ec14fc_1590493141
-#https://ewcdn13.nowe.com/session/p8-3-37e14e40349-c4ae989921b1c8d/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=45004cf6c70e3c78068506ad52ec14fc_1590493141
-#https://ewcdn13.nowe.com/session/p8-3-37e14e40349-c4ae989921b1c8d/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=45004cf6c70e3c78068506ad52ec14fc_1590493141
-#listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
-#listitem.setProperty('inputstream.adaptive.manifest_type', 'mpd')
-#listitem.setMimeType('application/dash+xml')
-#listitem.setProperty('inputstream.adaptive.stream_headers', 'Referer=blah&User-Agent=Blah')
-#listitem.setContentLookup(False)
 
 @plugin.route('/listlinetvchannels/<type>/<churl>')
 def list_linetvchannels(churl="", type="parent"):
@@ -206,6 +200,50 @@ def list_linetvchannels(churl="", type="parent"):
 				'setsubtitles': [episodedatas[c]['epsInfo']['source'][0]['links'][0]['subtitle']],
 			}
 			channels.append(channel)
+	return plugin.finish(channels)
+
+#https://ewcdn14.nowe.com/session/p8-5-f9faefbc85c-318d3fad569f91c/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=64115504543cf37b453522b15e9d1f54_1590492587
+#https://ewcdn13.nowe.com/session/p8-3-37e14e40349-c4ae989921b1c8d/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=45004cf6c70e3c78068506ad52ec14fc_1590493141
+#https://ewcdn13.nowe.com/session/p8-3-37e14e40349-c4ae989921b1c8d/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=45004cf6c70e3c78068506ad52ec14fc_1590493141
+#https://ewcdn13.nowe.com/session/p8-3-37e14e40349-c4ae989921b1c8d/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=45004cf6c70e3c78068506ad52ec14fc_1590493141
+#listitem.setProperty('inputstreamaddon', 'inputstream.adaptive')
+#listitem.setProperty('inputstream.adaptive.manifest_type', 'mpd')
+#listitem.setMimeType('application/dash+xml')
+#listitem.setProperty('inputstream.adaptive.stream_headers', 'Referer=blah&User-Agent=Blah')
+#listitem.setContentLookup(False)
+@plugin.route('/listviutvchannels/<type>/<churl>')
+def list_viutvchannels(churl="", type="parent"):
+	hamic = Hamivideo(settings)
+	channels = [hamic.ret_viutv(chid) for chid in ["096","099"]]
+	channels = [{
+			'label': c['name'],
+			'label2': c['description'],
+			'path': plugin.url_for('playchannel', churl=c['mpdurl'], type='viutv'),
+			'icon': c['icon'],
+			'thumbnail': c['icon'],
+			'info': c['info'],
+			'properties': {
+				'inputstreamaddon': 'inputstream.adaptive',
+				'inputstream.adaptive.license_type': 'com.widevine.alpha', #,  'com.widevine.alpha'
+				'inputstream.adaptive.manifest_type': 'mpd',
+				'inputstream.adaptive.license_key': "|".join([
+					"https://fwp.nowe.com/wrapperWV",
+					json.dumps({
+						'Host':'fwp.nowe.com',
+						'Origin':'https://viu.tv',
+						'Referer':'https://viu.tv/',
+						'TE':'Trailers',
+					}),
+					json.dumps({
+						"rawLicenseRequestBase64":"CAQ=",
+						"drmToken":c['drmToken'],
+					}),
+					"B", #[Response]
+					#'inputstream.adaptive.stream_headers': reqheaders_strs,
+				])
+			},
+			'is_playable': True,
+		} for c in channels]
 	return plugin.finish(channels)
 
 @plugin.route('/listmaplestagedramas/<type>/<churl>')
@@ -456,6 +494,9 @@ def playchannel(churl, type="hami"):
 		epi_data = hamic.ret_linetv_episode_data(url=cchurl)
 		streamingurl = epi_data['multibitrateplaylist']
 		subtitleurl = epi_data['epsInfo']['source'][0]['links'][0]['subtitle']
+	elif type=='viutv':
+		streamingurl = cchurl #hamic.ret_viutv(churl)['mpdurl']
+		subtitleurl = None
 	elif type=='poku':
 		streamingurl = hamic.get_poku_dramas([cchurl, 'findstreamingurl'])
 		streamingurl = streamingurl['videourl']+'|'+streamingurl['req_header_str']
