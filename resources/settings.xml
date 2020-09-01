@@ -1,0 +1,11 @@
+<settings>
+   <setting id="chromebinary_location" type="file" label="30001" default="D:\\PortableApps\\PortableApps\\GoogleChromePortable\\App\\Chrome-bin\\chrome.exe"/>
+   <setting id="chromedriver_path" type="file" label="30002" default="E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\chromedriver.exe"/>
+   <setting id="firefoxbinary_location" type="file" label="30003" default="/usr/bin/firefox"/>
+   <setting id="geckodriver_path" type="file" label="30004" default="/home/pi/kodi_addons/geckodriver"/>
+   <setting id="docker_remote_selenium_addr" type="text" label="30005" default="127.0.0.1:4444"/>
+   <setting id="browser_type" type="select" label="30006" values="chrome|firefox|remotech|remoteff" />
+   <setting id="chromeublockpath" type="file" label="30007" default="E:\Software\scripts\python\kodi_dev\plugin.video.hamivideo\ublock_extension_1_24_2_0.crx"/>
+   <setting id="firefoxblockpath" type="file" label="30008" default="E:\Software\scripts\python\kodi_dev\plugin.video.hamivideo\uBlock0_1.24.5rc1.firefox.signed.xpi"/>
+   <setting id="seleniumlogpath" type="file" label="30009" default="R:\\seleniumlogpath.txt"/>
+</settings>

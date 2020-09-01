@@ -1,0 +1,53 @@
+var webdata = {
+	set:function(key,val){
+		window.sessionStorage.setItem(key,val);
+	},
+	get:function(key){
+		return window.sessionStorage.getItem(key);
+	},
+	del:function(key){
+		window.sessionStorage.removeItem(key);
+	},
+	clear:function(key){
+		window.sessionStorage.clear();
+	}
+};
+var m3u8url = 'https://youku.com-t-youku.com/20190501/16433_0fd7b72d/index.m3u8'
+var dp = new DPlayer({
+	autoplay: false,
+	container: document.getElementById('dplayer'),
+	video: {
+		url: m3u8url,
+		type: 'hls',
+		pic: 'dplayer/loading_wap.jpg',
+	  },
+	  volume: 1.0,
+
+	  preload: 'auto',
+	  screenshot: true,
+	  theme: '#28FF28',
+});
+dp.seek(webdata.get('pay'+m3u8url));
+setInterval(function(){
+	webdata.set('pay'+m3u8url,dp.video.currentTime);
+},1000);
+var _peerId = '', _peerNum = 0, _totalP2PDownloaded = 0, _totalP2PUploaded = 0;
+dp.on('stats', function (stats) {
+	_totalP2PDownloaded = stats.totalP2PDownloaded;
+	_totalP2PUploaded = stats.totalP2PUploaded;
+	updateStats();
+});
+dp.on('peerId', function (peerId) {
+	_peerId = peerId;
+});
+dp.on('peers', function (peers) {
+	_peerNum = peers.length;
+	updateStats();
+});
+dp.on('ended', function () {
+window.parent.postMessage('tcwlnext','*');
+});
+function updateStats() {
+	var text = '';
+	document.getElementById('stats').innerText = text
+}

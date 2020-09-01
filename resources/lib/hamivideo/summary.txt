@@ -1,0 +1,37 @@
+src\main\java\com\cht\ottPlayer\util\Prefs.java
+public class Prefs {
+    public static Integer c(Context context, String str) {
+        if (a == null) {
+            a(context.getApplicationContext());
+        }
+        return Integer.valueOf(a.getInt(str, 0));
+    }
+}
+
+src\main\java\com\cht\ottPlayer\menu\util\Prefs.java
+public class Prefs {
+    public static boolean c(Context context, String str) {
+        return !TextUtils.isEmpty(String.valueOf(a(context, str))) && !"null".equals(String.valueOf(a(context, str)));
+    }
+    public static String b(Context context, String str) {
+        if (a == null) {
+            a(context.getApplicationContext());
+        }
+        return a.getString(str, "");
+    }
+}
+
+public class AccountManager {
+    public static Login c(Context context) {
+        if (Prefs.c(context, "login")) {
+            try {
+                return (Login) new Gson().fromJson(Prefs.b(context, "login"), Login.class);
+            } catch (JsonSyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+}
+String a2 = AccountManager.c(context).a();
+linkedHashMap.put("session_id", a2);

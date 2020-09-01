@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.hamivideo" name="Hamivideo" version="0.0.1" provider-name="TJ Jiang">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0"/>
+    <import addon="script.module.kodiswift"/>
+    <import addon="script.module.requests" version="2.22.0"/>
+    <import addon="script.module.htmlement" version="1.0.0"/>
+    <import addon="script.module.selenium"/>
+	<import addon="script.module.six"/>
+	<import addon="script.module.jsbeautifier"/>
+	<import addon="script.module.web-pdb" />
+	<import addon="inputstream.adaptive" />
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="addon.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <assets>
+      <icon>icon.ico</icon>
+      <fanart>fanart.png</fanart>
+    </assets>
+    <platform>all</platform>
+    <language></language>
+    <summary>Summary for "Hamivideo"</summary>
+    <description>Description for "Hamivideo"</description>
+  </extension>
+</addon>

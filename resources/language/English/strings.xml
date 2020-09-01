@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+  <!-- Plugin name -->
+  <string id="30000">Hamivideo</string>
+  <string id="30001">chrome binary location</string>
+  <string id="30002">chromedriver path</string>
+  <string id="30003">firefox binary location</string>
+  <string id="30004">geckodriver path</string>
+  <string id="30005">docker remote selenium addr</string>
+  <string id="30006">browser type</string>
+  <string id="30007">chrome ublock plugin path</string>
+  <string id="30008">firefox ublock plugin path</string>
+  <string id="30009">selenium log path</string>
+  <string id="30010">remotech</string>
+  <string id="30011">remoteff</string>
+  <string id="30007">selenium log path</string>
+</strings>
