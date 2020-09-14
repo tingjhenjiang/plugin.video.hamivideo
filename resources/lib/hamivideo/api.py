@@ -631,20 +631,30 @@ class Hamivideo(object):
 		return (maplestagestreamingurl+"|"+craftedurlparameters)
 
 	def ret_linetv_main_menu_catgs(self):
-		return {
-			'臺劇': 'tw',
-			'韓劇': 'kr',
-			'中劇': 'cn',
-			'BL': 'bl',
-			'綜藝娛樂': 'entr',
-			'動畫': 'anime',
-			'電影': 'movie',
-			'韓國電影': 'kr_film',
-			'兒少': 'kid',
-			'泰劇': 'tha',
-			'新加坡劇': 'sin',
-			'其他': 'others',
-		}
+		if False:
+			return {
+				'臺劇': 'tw',
+				'韓劇': 'kr',
+				'中劇': 'cn',
+				'BL': 'bl',
+				'綜藝娛樂': 'entr',
+				'動畫': 'anime',
+				'電影': 'movie',
+				'韓國電影': 'kr_film',
+				'兒少': 'kid',
+				'泰劇': 'tha',
+				'新加坡劇': 'sin',
+				'其他': 'others',
+			}
+		else:
+			root = self.requesturl_get_ret('https://www.linetv.tw')
+			root = htmlement.fromstring(root)
+			target_catgsnavs = root.findall(".//nav//a")
+			target_catgsnavs = [{'link': e.get('href'), 'text': e.text} for e in target_catgsnavs]
+			target_catgsnavs = [e for e in target_catgsnavs if re.search("area", e['link'])]
+			target_catgsnavs = [{e['text']: re.findall("area=(.+)", e['link'])[0] } for e in target_catgsnavs]
+			target_catgsnavs = reduce(self.merge_two_dicts,target_catgsnavs)
+			return target_catgsnavs
 
 	def ret_linetv_dramas_metadata(self, catg=''):
 		linetv_catg = self.ret_linetv_main_menu_catgs()
@@ -685,7 +695,8 @@ class Hamivideo(object):
 		targetdramadata = self.ret_domelement_with_text('optimist', targetdramadata)[0]
 		targetdramadata = targetdramadata.text.replace('window.__INITIAL_STATE__ = ', '')
 		targetdramadata = self.parse_json_response(json.loads(targetdramadata))
-		targetdramadata = targetdramadata['drama']['data']
+		targetdramadata = targetdramadata['entities']['dramas']
+		targetdramadata = targetdramadata.values()
 		targetdramadata_catgid = targetdramadata[0]['area_id']
 		targetdramadata_ids = [d['drama_id'] for d in targetdramadata]
 		responsejsondramas = self.ret_linetv_dramas_metadata(catg)
