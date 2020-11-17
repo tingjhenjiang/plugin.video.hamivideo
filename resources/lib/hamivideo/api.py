@@ -646,13 +646,17 @@ class Hamivideo(object):
 				'新加坡劇': 'sin',
 				'其他': 'others',
 			}
-		else:
+		elif False:
 			root = self.requesturl_get_ret('https://www.linetv.tw')
 			root = htmlement.fromstring(root)
 			target_catgsnavs = root.findall(".//nav//a")
 			target_catgsnavs = [{'link': e.get('href'), 'text': e.text} for e in target_catgsnavs]
 			target_catgsnavs = [e for e in target_catgsnavs if re.search("channel_id", e['link'])]
 			target_catgsnavs = [{e['text']: re.findall("channel_id=(.+)", e['link'])[0] } for e in target_catgsnavs]
+		else:
+			root = self.requesturl_get_ret('https://static.linetv.tw/api/drama/category.json')
+			target_catgsnavs = json.loads(root)['data']
+			target_catgsnavs = [{e['ga']: str(e['code'])} for e in target_catgsnavs] #e['id']
 			target_catgsnavs = reduce(self.merge_two_dicts,target_catgsnavs)
 			return target_catgsnavs
 
@@ -1196,6 +1200,12 @@ if __name__ == '__main__':
 	if (churl!=None):
 		settings = dict()
 		hamic = Hamivideo()
+		if False: #for debugging
+			res = hamic.ret_linetv_dramas_of_a_catg("kid")[0]
+			#res = hamic.ret_linetv_main_menu_catgs()
+			#res = type(res)
+			print(res)
+			sys.exit()
 		fakemediaurl_suffix = 'index.m3u8'
 		#if type in ['linetoday','maplestage','linetv','dramaq']:
 		#	cchurl = churl.replace(fakemediaurl_suffix,'')
