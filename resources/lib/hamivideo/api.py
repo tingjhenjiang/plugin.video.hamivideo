@@ -651,8 +651,8 @@ class Hamivideo(object):
 			root = htmlement.fromstring(root)
 			target_catgsnavs = root.findall(".//nav//a")
 			target_catgsnavs = [{'link': e.get('href'), 'text': e.text} for e in target_catgsnavs]
-			target_catgsnavs = [e for e in target_catgsnavs if re.search("area", e['link'])]
-			target_catgsnavs = [{e['text']: re.findall("area=(.+)", e['link'])[0] } for e in target_catgsnavs]
+			target_catgsnavs = [e for e in target_catgsnavs if re.search("channel_id", e['link'])]
+			target_catgsnavs = [{e['text']: re.findall("channel_id=(.+)", e['link'])[0] } for e in target_catgsnavs]
 			target_catgsnavs = reduce(self.merge_two_dicts,target_catgsnavs)
 			return target_catgsnavs
 
