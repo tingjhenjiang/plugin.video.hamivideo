@@ -121,7 +121,8 @@ class Hamivideo(object):
 
 	def return_linetodaychs(self):
 		topmenus = htmlement.fromstring(self.requesturl_get_ret(self.linetoday_url)).findall(".//ul[@class='gnb']/li")
-		watchlinetodaytvelem = filter(lambda x: re.search("(&#38651;&#35222;)", elemtree.tostring(x)), topmenus )[0] #
+		watchlinetodaytvelem = six.moves.filter(lambda x: re.search("(&#38651;&#35222;)", elemtree.tostring(x)), topmenus )[0] #
+		watchlinetodaytvelem = list(watchlinetodaytvelem)
 		watchlinetodaytvelink = self.linetoday_url+watchlinetodaytvelem.find(".//a").get("href")
 		root = htmlement.fromstring(self.requesturl_get_ret(watchlinetodaytvelink))
 		main_menu_list = []
@@ -184,8 +185,8 @@ class Hamivideo(object):
 		response = requests.get(dramaq_search_url, cookies=setcookies, params=dramaq_search_url_data)
 		dramaq_search_results = re.findall("google\.search\.cse.+\(({[\w\d\s\W\D\S]+})\);", response.text)
 		dramaq_search_results = self.parse_json_response(dramaq_search_results)[0]["results"]
-		dramaq_search_results = filter(lambda x: re.search("\d+\.html", x['url'])==None, dramaq_search_results)
-		dramaq_drama_link = dramaq_search_results[0]['url']
+		dramaq_search_results = six.moves.filter(lambda x: re.search("\d+\.html", x['url'])==None, dramaq_search_results)
+		dramaq_drama_link = next(dramaq_search_results)['url']
 		response = session.get(dramaq_drama_link)
 		response.encoding = 'UTF-8'
 		dramaq_singledrama_root = htmlement.fromstring(response.text)
@@ -657,7 +658,7 @@ class Hamivideo(object):
 			root = self.requesturl_get_ret('https://static.linetv.tw/api/drama/category.json')
 			target_catgsnavs = json.loads(root)['data']
 			target_catgsnavs = [{e['ga']: str(e['code'])} for e in target_catgsnavs] #e['id']
-			target_catgsnavs = reduce(self.merge_two_dicts,target_catgsnavs)
+			target_catgsnavs = six.moves.reduce(self.merge_two_dicts,target_catgsnavs)
 			return target_catgsnavs
 
 	def ret_linetv_dramas_metadata(self, catg=''):
@@ -700,7 +701,8 @@ class Hamivideo(object):
 		targetdramadata = targetdramadata.text.replace('window.__INITIAL_STATE__ = ', '')
 		targetdramadata = self.parse_json_response(json.loads(targetdramadata))
 		targetdramadata = targetdramadata['entities']['dramas']
-		targetdramadata = targetdramadata.values()
+		#targetdramadata = targetdramadata.values()
+		targetdramadata = list(six.viewvalues(targetdramadata))
 		targetdramadata_catgid = targetdramadata[0]['area_id']
 		targetdramadata_ids = [d['drama_id'] for d in targetdramadata]
 		responsejsondramas = self.ret_linetv_dramas_metadata(catg)
@@ -772,6 +774,8 @@ class Hamivideo(object):
 		epi_data = 'https://www.linetv.tw/api/part/'+str(drama_id)+'/eps/'+str(episode)+'/part?chocomemberId=null'
 		epi_data = self.requesturl_get_ret(epi_data, headers=reqheaders)
 		epi_data = self.parse_json_response(epi_data)
+		if 'epsInfo' not in list(six.viewkeys(epi_data)):
+			return False #only VIP may watch
 		for_decrypt_post_data = {"keyType":epi_data['epsInfo']['source'][0]['links'][0]['keyType'],
 					"keyId":epi_data['epsInfo']['source'][0]['links'][0]['keyId'],
 					"dramaId":drama_id,
@@ -782,9 +786,9 @@ class Hamivideo(object):
 		basepath = urllib.parse.urlparse(multibitrateplaylist)
 		basepath = basepath.scheme+'://'+basepath.netloc+os.path.dirname(basepath.path)
 		singlebitrateplaylist = self.requesturl_get_ret(multibitrateplaylist).split("\n")
-		singlebitrateplaylist = filter(lambda x: x.find('480p')!=-1, singlebitrateplaylist)
-		singlebitrateplaylist = filter(lambda x: x.find('m3u8')!=-1, singlebitrateplaylist)
-		singlebitrateplaylist = basepath+'/'+singlebitrateplaylist[0]
+		singlebitrateplaylist = six.moves.filter(lambda x: x.find('480p')!=-1, singlebitrateplaylist)
+		singlebitrateplaylist = six.moves.filter(lambda x: x.find('m3u8')!=-1, singlebitrateplaylist)
+		singlebitrateplaylist = basepath+'/'+next(singlebitrateplaylist)
 		#drama_data = self.ret_linetv_drama(drama_id)
 		#epi_data = self.merge_two_dicts(drama_data,epi_data)
 		epi_data = self.merge_two_dicts(epi_data,decryptdata)
@@ -1126,10 +1130,11 @@ class Hamivideo(object):
 						excepterror = excepterror+str(e)
 						continue
 			searchres = self.unique(searchres)
-			searchres = filter(lambda x: 'request' in x.keys(), searchres)
-			searchres = filter(lambda x: 'url' in x['request'].keys(), searchres)
-			searchres = filter(lambda x: re.search(maplestage_exclude_patterns, x['request']['url'])==None, searchres)
-			searchres = filter(lambda x: re.search(mediakwds_str, x['request']['url'])!=None, searchres)
+			searchres = six.moves.filter(lambda x: 'request' in x.keys(), searchres)
+			searchres = six.moves.filter(lambda x: 'url' in x['request'].keys(), searchres)
+			searchres = six.moves.filter(lambda x: re.search(maplestage_exclude_patterns, x['request']['url'])==None, searchres)
+			searchres = six.moves.filter(lambda x: re.search(mediakwds_str, x['request']['url'])!=None, searchres)
+			searchres = list(searchres)
 			while True: #because got many requests, pick one randomly
 				break_try_random_element = False
 				try:
@@ -1200,11 +1205,22 @@ if __name__ == '__main__':
 	if (churl!=None):
 		settings = dict()
 		hamic = Hamivideo()
-		if False: #for debugging
-			res = hamic.ret_linetv_dramas_of_a_catg("kid")[0]
+		if True: #for debugging
+			#res = hamic.ret_linetv_dramas_of_a_catg("kid")
+			#res = hamic.ret_linetv_dramas_metadata()
+			res = hamic.ret_linetv_drama(churl)
+			episode_args = [(int(churl), c) for c in range(1, res['current_eps']+1)]
+			#res = hamic.ret_linetv_dramas_of_a_catg("kid")[0]
 			#res = hamic.ret_linetv_main_menu_catgs()
 			#res = type(res)
-			print(res)
+			pool = ThreadPool(4)
+			episodedatas = pool.map(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args)
+			print(episodedatas)
+			sys.exit()
+			descriptions = pool.map(hamic.ret_linetv_drama_description_multi_run_wrapper, episode_args)
+			episodedatas = {int(d['episode']):d for d in episodedatas}
+			descriptions = {int(d['drama_episode']):d['drama_description'] for d in descriptions}
+			print(episodedatas)
 			sys.exit()
 		fakemediaurl_suffix = 'index.m3u8'
 		#if type in ['linetoday','maplestage','linetv','dramaq']:
