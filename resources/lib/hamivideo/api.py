@@ -1205,7 +1205,7 @@ if __name__ == '__main__':
 	if (churl!=None):
 		settings = dict()
 		hamic = Hamivideo()
-		if True: #for debugging
+		if False: #for debugging
 			#res = hamic.ret_linetv_dramas_of_a_catg("kid")
 			#res = hamic.ret_linetv_dramas_metadata()
 			res = hamic.ret_linetv_drama(churl)
