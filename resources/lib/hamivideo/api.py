@@ -10,14 +10,15 @@ import random
 import base64
 import jsbeautifier
 import six
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
+if False:
+	from selenium import webdriver
+	from selenium.webdriver.chrome.options import Options as ChromeOptions
+	from selenium.webdriver.firefox.options import Options as FirefoxOptions
+	from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+	from selenium.webdriver.common.keys import Keys
+	from selenium.webdriver.support.wait import WebDriverWait
+	from selenium.webdriver.support import expected_conditions as EC
+	from selenium.webdriver.common.by import By
 import six.moves.urllib as urllib
 try:
 	from multiprocessing.dummy import Pool as ThreadPool
@@ -121,8 +122,8 @@ class Hamivideo(object):
 
 	def return_linetodaychs(self):
 		topmenus = htmlement.fromstring(self.requesturl_get_ret(self.linetoday_url)).findall(".//ul[@class='gnb']/li")
-		watchlinetodaytvelem = six.moves.filter(lambda x: re.search("(&#38651;&#35222;)", elemtree.tostring(x)), topmenus )[0] #
-		watchlinetodaytvelem = list(watchlinetodaytvelem)
+		watchlinetodaytvelem = six.moves.filter(lambda x: re.search("(&#38651;&#35222;)", elemtree.tostring(x)), topmenus ) #
+		watchlinetodaytvelem = list(watchlinetodaytvelem)[0]
 		watchlinetodaytvelink = self.linetoday_url+watchlinetodaytvelem.find(".//a").get("href")
 		root = htmlement.fromstring(self.requesturl_get_ret(watchlinetodaytvelink))
 		main_menu_list = []
@@ -338,10 +339,10 @@ class Hamivideo(object):
 			return all_dramas
 		if mode=='drama':
 			dramaselems = root.findall(".//ul") #vodlist vodlist_wi list_v12 clearfix
-			dramaselems = filter(lambda x: x.get('class')!=None, dramaselems)
-			dramaselems = filter(lambda x: re.search('vodlist', x.get('class') )!=None, dramaselems)
-			dramaselems = filter(lambda x: re.search('clearfix', x.get('class') )!=None, dramaselems)
-			dramaselems = filter(lambda x: re.search('vodlist_wi', x.get('class') )!=None, dramaselems) #vodlist vodlist_wi list_v12 clearfix
+			dramaselems = six.moves.filter(lambda x: x.get('class')!=None, dramaselems)
+			dramaselems = six.moves.filter(lambda x: re.search('vodlist', x.get('class') )!=None, dramaselems)
+			dramaselems = six.moves.filter(lambda x: re.search('clearfix', x.get('class') )!=None, dramaselems)
+			dramaselems = six.moves.filter(lambda x: re.search('vodlist_wi', x.get('class') )!=None, dramaselems) #vodlist vodlist_wi list_v12 clearfix
 			for dramaselem in dramaselems:
 				dramaselemlis = dramaselem.findall(".//li")
 				for dramaselemli in dramaselemlis:
@@ -541,7 +542,8 @@ class Hamivideo(object):
 			kickloginform_inputs = {elem.get('name'):elem.get('value') for elem in kickloginform.findall(".//input")}
 			kicklogindevices = self.parse_json_response(kickloginform_inputs['device'])
 			earliest_login = sorted([d['loginTime'] for d in kicklogindevices])[0]
-			earliest_login_device = filter(lambda x: x['loginTime']==earliest_login, kicklogindevices)[0]
+			earliest_login_device = six.moves.filter(lambda x: x['loginTime']==earliest_login, kicklogindevices)
+			earliest_login_device = list(earliest_login_device)[0]
 			kicklogindata = self.merge_two_dicts(kickloginform_inputs, {'loginMethod': 'kick', 'authLoginId':'', 'otpw': earliest_login_device["logoutToken"], 'autoLogin':'', 'orig_otpw':''})
 			kicklogindata.pop('device')
 			response = session.post('https://hamivideo.hinet.net/hamivideo/loginTo.do', data=kicklogindata, cookies=setcookies)
@@ -597,9 +599,9 @@ class Hamivideo(object):
 		maplestage_singledrama_scripts = maplestage_singledrama_scripts[0]
 		video_refer_argums = re.findall("push\(\'(.+)\'\)", maplestage_singledrama_scripts)
 		video_refer_argums = set(video_refer_argums)
-		video_refer_argums = filter(lambda x: len(x)>10, video_refer_argums)
+		video_refer_argums = six.moves.filter(lambda x: len(x)>10, video_refer_argums)
 		video_refer_argums = map(lambda x: 'https://video.8maple.ru/yandisk/?url='+x if re.search('http',x)==None else x, video_refer_argums)
-		video_refer_argums = filter(lambda x: re.search('mobile.php',x)==None, video_refer_argums)
+		video_refer_argums = six.moves.filter(lambda x: re.search('mobile.php',x)==None, video_refer_argums)
 		video_refer_argums = sorted(video_refer_argums)
 		session.headers.update(self.merge_two_dicts(reqheaders_maplestage, {
 			'Referer': singleepisodeurl,
