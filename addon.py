@@ -2,7 +2,6 @@
 from kodiswift import Plugin, xbmc, xbmcaddon, xbmcgui, xbmcplugin
 from resources.lib.hamivideo.api import Hamivideo
 import base64, time, os
-import six.moves.urllib as urllib
 try:
 	from multiprocessing.dummy import Pool as ThreadPool
 	threadpool_imported = True
@@ -89,7 +88,8 @@ def index():
 		'path': plugin.url_for('nextviewmode'),
 		'is_playable': False
 	},]
-	return plugin.finish(hamichlst+linetodaylst+maplestagelst+linetvlst+viutvlst+pokulst+dramaqlst+directplaylst) #view_mode=50
+	#linetodaylst+maplestagelst+viutvlst+pokulst+
+	return plugin.finish(hamichlst+linetvlst+dramaqlst+directplaylst) #view_mode=50
 
 '''
 #xbmc.executebuiltin('Container.SetViewMode(%s)' % 55)
@@ -281,7 +281,7 @@ def list_maplestagechs(churl="", type="parent"):
 		} for c in channels]
 		channels.append({
 			'label': 'Switch to DramaQ sources for '+six.ensure_str(drama_name),
-			'path': plugin.url_for('list_dramaq', drama_name=base64.b64encode(six.ensure_str(drama_name)) ), #urllib.parse.quote(
+			'path': plugin.url_for('list_dramaq', drama_name=base64.b64encode(six.ensure_str(drama_name)) ),
 			'is_playable': False,
 		})
 	length_of_ch = str(len(channels))
@@ -502,6 +502,11 @@ def playchannel(churl, type="hami"):
 		streamingurl = streamingurl['videourl']+'|'+streamingurl['req_header_str']
 		subtitleurl = None
 	elif type=='direct':
+		if re.search('youtube.com/watch\?v',cchurl)!=None:
+			plugin.log.info('matching youtube url!')
+			youtube_video_id = re.match(".+youtube.com/.+v=([\w\d]+)",cchurl).group(1)
+			cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
+			plugin.log.info('transforme youtube url to '+cchurl)
 		streamingurl = cchurl
 		subtitleurl = None
 	elif type=='linetoday':

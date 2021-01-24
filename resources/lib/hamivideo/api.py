@@ -10,7 +10,7 @@ import random
 import base64
 import jsbeautifier
 import six
-if False:
+try:
 	from selenium import webdriver
 	from selenium.webdriver.chrome.options import Options as ChromeOptions
 	from selenium.webdriver.firefox.options import Options as FirefoxOptions
@@ -19,7 +19,9 @@ if False:
 	from selenium.webdriver.support.wait import WebDriverWait
 	from selenium.webdriver.support import expected_conditions as EC
 	from selenium.webdriver.common.by import By
-import six.moves.urllib as urllib
+except:
+	include_selenium = False
+	pass
 try:
 	from multiprocessing.dummy import Pool as ThreadPool
 	threadpool_imported = True
@@ -178,10 +180,10 @@ class Hamivideo(object):
 			'cselibv':cselibVersion,
 			'cx':searchboxcx,
 			'safe':'off',
-			'cse_tok':urllib.parse.unquote(cse_token),
+			'cse_tok':six.moves.urllib.parse.unquote(cse_token),
 			'exp':'csqr,cc',
 			'callback':'google.search.cse.api3966',
-			'q':urllib.parse.unquote(drama_name),
+			'q':six.moves.urllib.parse.unquote(drama_name),
 		}
 		response = requests.get(dramaq_search_url, cookies=setcookies, params=dramaq_search_url_data)
 		dramaq_search_results = re.findall("google\.search\.cse.+\(({[\w\d\s\W\D\S]+})\);", response.text)
@@ -785,7 +787,7 @@ class Hamivideo(object):
 		decryptdata = self.requesturl_post_ret('https://www.linetv.tw/api/part/dinosaurKeeper', data=for_decrypt_post_data, headers=reqheaders)
 		decryptdata = self.parse_json_response(decryptdata)
 		multibitrateplaylist = epi_data['epsInfo']['source'][0]['links'][0]['link']
-		basepath = urllib.parse.urlparse(multibitrateplaylist)
+		basepath = six.moves.urllib.parse.urlparse(multibitrateplaylist)
 		basepath = basepath.scheme+'://'+basepath.netloc+os.path.dirname(basepath.path)
 		singlebitrateplaylist = self.requesturl_get_ret(multibitrateplaylist).split("\n")
 		singlebitrateplaylist = six.moves.filter(lambda x: x.find('480p')!=-1, singlebitrateplaylist)
@@ -818,6 +820,12 @@ class Hamivideo(object):
 		return epi_data
 
 	def ret_linetv_streaming_url(self, url):
+		sdplaylist = self.ret_linetv_episode_data(url=url)
+		sdplaylist = sdplaylist['playlisturl']+"|Origin=https://www.linetv.tw|Referer=https://www.linetv.tw/drama/"+sdplaylist['drama_id']+"/eps/1|user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0|authentication="+sdplaylist['token']
+		return sdplaylist
+
+	def ret_viutv(self, chid):
+		#https://ewcdn10.nowe.com/session/p8-5-8518f8ab588-79c6022a266edc9/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=4114b6b097b0ab0a8d2f4978b9b39300_1605648738
 		sdplaylist = self.ret_linetv_episode_data(url=url)
 		sdplaylist = sdplaylist['playlisturl']+"|Origin=https://www.linetv.tw|Referer=https://www.linetv.tw/drama/"+sdplaylist['drama_id']+"/eps/1|user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0|authentication="+sdplaylist['token']
 		return sdplaylist
