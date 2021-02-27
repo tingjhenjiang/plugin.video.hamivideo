@@ -25,15 +25,15 @@ except:
 #project https://www.gdaily.org/22554/2020-watch-video
 
 settings = {
-	'chromedriver_path': plugin.get_setting('chromedriver_path', unicode),
-	'chromebinary_location': plugin.get_setting('chromebinary_location', unicode),
-	'geckodriver_path': plugin.get_setting('geckodriver_path', unicode),
-	'firefoxbinary_location': plugin.get_setting('firefoxbinary_location', unicode),
-	'docker_remote_selenium_addr': plugin.get_setting('docker_remote_selenium_addr', unicode),
-	'browser_type': plugin.get_setting('browser_type', unicode),
-	'chromeublockpath': plugin.get_setting('chromeublockpath', unicode),
-	'firefoxublockpath': plugin.get_setting('firefoxublockpath', unicode),
-	'seleniumlogpath': plugin.get_setting('seleniumlogpath', unicode)
+	'chromedriver_path': plugin.get_setting('chromedriver_path',  six.text_type),
+	'chromebinary_location': plugin.get_setting('chromebinary_location',  six.text_type),
+	'geckodriver_path': plugin.get_setting('geckodriver_path',  six.text_type),
+	'firefoxbinary_location': plugin.get_setting('firefoxbinary_location',  six.text_type),
+	'docker_remote_selenium_addr': plugin.get_setting('docker_remote_selenium_addr',  six.text_type),
+	'browser_type': plugin.get_setting('browser_type',  six.text_type),
+	'chromeublockpath': plugin.get_setting('chromeublockpath',  six.text_type),
+	'firefoxublockpath': plugin.get_setting('firefoxublockpath',  six.text_type),
+	'seleniumlogpath': plugin.get_setting('seleniumlogpath',  six.text_type)
 }
 
 
@@ -91,7 +91,7 @@ def index():
 	#linetodaylst+maplestagelst+viutvlst+pokulst+
 	return plugin.finish(hamichlst+linetvlst+dramaqlst+directplaylst) #view_mode=50
 
-'''
+
 #xbmc.executebuiltin('Container.SetViewMode(%s)' % 55)
 #plugin.set_view_mode(55)
 #https://romanvm.github.io/Kodistubs/_autosummary/xbmcgui.html?highlight=guide
@@ -99,18 +99,18 @@ def index():
 #https://kodi.wiki/view/Skinning
 #https://forum.kodi.tv/showthread.php?tid=123470
 #plugin.set_content('group')
-Error Type: <type 'exceptions.RuntimeError'>
-Error Contents: Unknown addon id '"plugin.video.hamivideo"'.
-Traceback (most recent call last):
-  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\uepg.py", line 299, in <module>
-	if data is not None: initChannels(params, data, dataType)
-  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\uepg.py", line 230, in initChannels
-	channelLST.pluginName, channelLST.pluginAuthor, channelLST.pluginIcon, channelLST.pluginFanart, channelLST.pluginPath = utils.getPluginMeta(channelLST.refreshPath)
-  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\utils.py", line 165, in getPluginMeta
-	pluginID = xbmcaddon.Addon(plugin)
-RuntimeError: Unknown addon id '"plugin.video.hamivideo"'.
--->End of Python script error report<--
-'''
+#Error Type: <type 'exceptions.RuntimeError'>
+#Error Contents: Unknown addon id '"plugin.video.hamivideo"'.
+#Traceback (most recent call last):
+#  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\uepg.py", line 299, in <module>
+#	if data is not None: initChannels(params, data, dataType)
+#  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\uepg.py", line 230, in initChannels
+#	channelLST.pluginName, channelLST.pluginAuthor, channelLST.pluginIcon, channelLST.pluginFanart, channelLST.pluginPath = utils.getPluginMeta(channelLST.refreshPath)
+#  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\utils.py", line 165, in getPluginMeta
+#	pluginID = xbmcaddon.Addon(plugin)
+#RuntimeError: Unknown addon id '"plugin.video.hamivideo"'.
+#-->End of Python script error report<--
+
 
 @plugin.route('/listhamichannels/')
 def list_hamichannels():
