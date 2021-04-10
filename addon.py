@@ -1,5 +1,5 @@
 ﻿import re, socket, json, sys, six
-from kodiswift import Plugin, xbmc, xbmcaddon, xbmcgui, xbmcplugin
+from xbmcswift2 import Plugin, xbmc, xbmcaddon, xbmcgui, xbmcplugin
 from resources.lib.hamivideo.api import Hamivideo
 import base64, time, os
 try:
@@ -489,6 +489,7 @@ def playchannel(churl, type="hami"):
 		channelid = os.path.basename(cchurl).replace('.do','')
 		streamingurl = hamic.ret_hami_streaming_url_by_req(channelid)
 		streamingurl = hamic.get_better_q_streamingsrc(streamingurl)
+		streamingurl = streamingurl+"|User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36&referer=https://hamivideo.hinet.net&origin=https://hamivideo.hinet.net"
 		subtitleurl = None
 	elif type=='linetv':
 		epi_data = hamic.ret_linetv_episode_data(url=cchurl)

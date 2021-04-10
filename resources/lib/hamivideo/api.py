@@ -512,7 +512,8 @@ class Hamivideo(object):
 	def ret_hami_streaming_url_by_req(self, channel_id, ret_session=False):
 		reqheaders_std = {
 			'Origin': 'https://hamivideo.hinet.net',
-			'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
+			#'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
+			'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
 			'Sec-Fetch-Site': 'same-origin',
 			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 			'Accept-Encoding': 'gzip, deflate, br',
@@ -554,6 +555,7 @@ class Hamivideo(object):
 			pass #print("no duplicated hamivideo login")
 		channelapiurl = 'https://hamivideo.hinet.net/api/play.do?id='+channel_id
 		response = session.get(channelapiurl, cookies=setcookies)
+		time.sleep(1)
 		responsejson = self.parse_json_response(response.text)
 		if ret_session==True:
 			return {'session':session, 'cookie': setcookies}
