@@ -91,27 +91,6 @@ def index():
 	#linetodaylst+maplestagelst+viutvlst+pokulst+
 	return plugin.finish(hamichlst+linetvlst+dramaqlst+directplaylst) #view_mode=50
 
-
-#xbmc.executebuiltin('Container.SetViewMode(%s)' % 55)
-#plugin.set_view_mode(55)
-#https://romanvm.github.io/Kodistubs/_autosummary/xbmcgui.html?highlight=guide
-#https://romanvm.github.io/Kodistubs/_autosummary/xbmcplugin.html#xbmcplugin.setSetting
-#https://kodi.wiki/view/Skinning
-#https://forum.kodi.tv/showthread.php?tid=123470
-#plugin.set_content('group')
-#Error Type: <type 'exceptions.RuntimeError'>
-#Error Contents: Unknown addon id '"plugin.video.hamivideo"'.
-#Traceback (most recent call last):
-#  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\uepg.py", line 299, in <module>
-#	if data is not None: initChannels(params, data, dataType)
-#  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\uepg.py", line 230, in initChannels
-#	channelLST.pluginName, channelLST.pluginAuthor, channelLST.pluginIcon, channelLST.pluginFanart, channelLST.pluginPath = utils.getPluginMeta(channelLST.refreshPath)
-#  File "C:\Users\dowba\AppData\Roaming\Kodi\addons\script.module.uepg\utils.py", line 165, in getPluginMeta
-#	pluginID = xbmcaddon.Addon(plugin)
-#RuntimeError: Unknown addon id '"plugin.video.hamivideo"'.
-#-->End of Python script error report<--
-
-
 @plugin.route('/listhamichannels/')
 def list_hamichannels():
 	hamic = Hamivideo(settings)
