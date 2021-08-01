@@ -1191,7 +1191,8 @@ class Hamivideo(object):
 
 	def get_better_q_streamingsrc(self, streamingurl, newq='4'):
 		p = re.compile('index{1}_?\d?.m3u8')
-		streamingurl = p.sub('index_'+newq+'.m3u8', streamingurl)
+		#streamingurl = p.sub('index_'+newq+'.m3u8', streamingurl)
+		streamingurl = p.sub('index.m3u8', streamingurl)
 		return streamingurl
 
 '''
