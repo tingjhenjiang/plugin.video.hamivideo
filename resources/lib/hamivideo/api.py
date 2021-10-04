@@ -51,6 +51,7 @@ class Hamivideo(object):
 		self.useragent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0'
 		self.request_user_agent = 'User-Agent: '+self.useragent #Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36
 		self.mobile_request_useragent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
+		self.linetv_host_url = 'https://www.linetv.tw'
 		try:
 			import multiprocessing
 			self.workers = multiprocessing.cpu_count()
@@ -445,7 +446,7 @@ class Hamivideo(object):
 			pool.join()
 		else:
 			results = [self.ret_maplestage_dramas_of_a_yr(iterarg) for iterarg in iterargs]
-		results = reduce(lambda x,y: x+y, results)
+		results = six.moves.reduce(lambda x,y: x+y, results)
 		#q = Queue.Queue()
 		#for yrtitle, sample_link_of_a_year_init in sample_yrlinks.items():
 		#	dramas_of_a_yr = self.ret_maplestage_dramas_of_a_yr(sample_link_of_a_year_init, yrtitle)
@@ -637,7 +638,7 @@ class Hamivideo(object):
 		craftedurlparameters = "&".join(craftedurlparameters)
 		return (maplestagestreamingurl+"|"+craftedurlparameters)
 
-	def ret_linetv_main_menu_catgs(self):
+	def ret_linetv_main_menu_catgs(self, catgurl=None):
 		if False:
 			return {
 				'臺劇': 'tw',
@@ -654,18 +655,87 @@ class Hamivideo(object):
 				'其他': 'others',
 			}
 		elif False:
-			root = self.requesturl_get_ret('https://www.linetv.tw')
+			root = self.requesturl_get_ret(self.linetv_host_url)
 			root = htmlement.fromstring(root)
 			target_catgsnavs = root.findall(".//nav//a")
 			target_catgsnavs = [{'link': e.get('href'), 'text': e.text} for e in target_catgsnavs]
 			target_catgsnavs = [e for e in target_catgsnavs if re.search("channel_id", e['link'])]
 			target_catgsnavs = [{e['text']: re.findall("channel_id=(.+)", e['link'])[0] } for e in target_catgsnavs]
-		else:
+		elif False:
 			root = self.requesturl_get_ret('https://static.linetv.tw/api/drama/category.json')
 			target_catgsnavs = json.loads(root)['data']
-			target_catgsnavs = [{e['ga']: str(e['code'])} for e in target_catgsnavs] #e['id']
+			target_catgsnavs = [{e['ga']: str(e['id'])} for e in target_catgsnavs] #e['id']
 			target_catgsnavs = six.moves.reduce(self.merge_two_dicts,target_catgsnavs)
 			return target_catgsnavs
+		else:
+			catgurl = self.linetv_host_url if catgurl==None else catgurl
+			data = self.requesturl_get_ret(catgurl)
+			root = htmlement.fromstring(data)
+			target_catgsnavs = []
+			for item in root.findall(".//div//nav//a"):
+				if re.search('/channel/',item.get('href'))!=None and item.text!=None:
+					target_catgsnavs.append({
+						item.text: "{}{}".format(self.linetv_host_url,item.get("href"))
+						})
+			target_catgsnavs = six.moves.reduce(self.merge_two_dicts,target_catgsnavs)
+			return target_catgsnavs
+
+	def ret_linetv_dramas_of_a_catg(self, catgurl=1):
+		researchres = re.search('channel/(\d+)/genre/(\d+)',catgurl)
+		#linetv_catg = self.ret_linetv_main_menu_catgs()
+		#dataurl_for_drama_in_a_category = 'https://www.linetv.tw/drama?area={}'
+		#linetv_json_drama_data_url = catgurl.replace('https://www.linetv.tw/channel/','https://api.linetv.tw/search/v1/contents/channel/')
+		#dataurl_for_drama_in_a_category = 'https://api.linetv.tw/content/v2/channels-pc-web/{}?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=9.61.1&countryCode=TW&languageId=zh'
+		#dataurl_for_drama_in_a_category = 'https://api.linetv.tw/search/v1/contents/channel/{}/sort/VIEW_COUNT_LAST_7_DAYS/order/DESC/genre/?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=9.73.1&countryCode=TW&languageId=zh'
+		#linetv_catg_api_req_header_refer = {str(v):dataurl_for_drama_in_a_category.format(v) for k,v in linetv_catg.items()}
+		dataurl_for_drama_in_a_category = "https://api.linetv.tw/search/v1/contents/channel/{}/sort/VIEW_COUNT_LAST_7_DAYS/order/DESC/genre/{}?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=9.73.1&countryCode=TW&languageId=zh"
+		dataurl_for_drama_in_a_category = dataurl_for_drama_in_a_category.format(researchres.group(1),researchres.group(2))
+		#strcatg = str(catg)
+		data = self.requesturl_get_ret(dataurl_for_drama_in_a_category)
+		data = json.loads(data)
+		if False:
+			root = htmlement.fromstring(catg_html)
+			targetdramadata = root.findall(".//script")
+			targetdramadata = self.ret_domelement_with_text('optimist', targetdramadata)[0]
+			targetdramadata = targetdramadata.text.replace('window.__INITIAL_STATE__ = ', '')
+			targetdramadata = self.parse_json_response(json.loads(targetdramadata))
+			targetdramadata = targetdramadata['entities']['dramas']
+			#targetdramadata = targetdramadata.values()
+			targetdramadata = list(six.viewvalues(targetdramadata))
+			targetdramadata_catgid = targetdramadata[0]['area_id']
+			targetdramadata_ids = [d['drama_id'] for d in targetdramadata]
+			responsejsondramas = self.ret_linetv_dramas_metadata(catg)
+			for drama in responsejsondramas:
+				try:
+					if str(drama['area_id'])==str(targetdramadata_catgid) and not(drama['drama_id'] in targetdramadata_ids):
+						targetdramadata.append(drama)
+				except:
+					continue
+			return targetdramadata
+		elif False:
+			dramalist = six.moves.reduce(lambda x,y: x+[y], data['data']['home'], [])
+			dramalist = six.moves.reduce(lambda x,y: x+y['data'], dramalist, [])
+			dramalist = six.moves.filter(lambda x: ('type' in x) and (x['type']=='drama'), dramalist)
+			#dramalist = six.moves.filter(lambda x: x['type']=='drama', dramalist)
+			dramalist = list(dramalist)
+			for dramalist_i, drama in enumerate(dramalist):
+				for dramadatakey in ['description','info']:
+					if dramadatakey not in drama:
+						drama[dramadatakey] = ''
+			return dramalist
+		else:
+			data = data['data']
+			for dramalist_i, drama in enumerate(data):
+				data[dramalist_i] = {
+					'id': drama['contentId'],
+					'name': drama['name'],
+					'type': drama['type'],
+					'info': drama['introduction'],
+					'description': drama['introduction'],
+					'posterUrl': drama['landscapePosterUrl'],
+					'verticalPosterUrl': drama['portraitPosterUrl'],
+				}
+			return data
 
 	def ret_linetv_dramas_metadata(self, catg=''):
 		linetv_catg = self.ret_linetv_main_menu_catgs()
@@ -696,29 +766,6 @@ class Hamivideo(object):
 		for d in responsejsondramas:
 			if (d['drama_id'])==int(dramaid):
 				return d
-
-	def ret_linetv_dramas_of_a_catg(self, catg):
-		linetv_catg = self.ret_linetv_main_menu_catgs()
-		linetv_catg_api_req_header_refer = {v:'https://www.linetv.tw/drama?area='+v for k,v in linetv_catg.items()}
-		catg_html = self.requesturl_get_ret(linetv_catg_api_req_header_refer[catg])
-		root = htmlement.fromstring(catg_html)
-		targetdramadata = root.findall(".//script")
-		targetdramadata = self.ret_domelement_with_text('optimist', targetdramadata)[0]
-		targetdramadata = targetdramadata.text.replace('window.__INITIAL_STATE__ = ', '')
-		targetdramadata = self.parse_json_response(json.loads(targetdramadata))
-		targetdramadata = targetdramadata['entities']['dramas']
-		#targetdramadata = targetdramadata.values()
-		targetdramadata = list(six.viewvalues(targetdramadata))
-		targetdramadata_catgid = targetdramadata[0]['area_id']
-		targetdramadata_ids = [d['drama_id'] for d in targetdramadata]
-		responsejsondramas = self.ret_linetv_dramas_metadata(catg)
-		for drama in responsejsondramas:
-			try:
-				if str(drama['area_id'])==str(targetdramadata_catgid) and not(drama['drama_id'] in targetdramadata_ids):
-					targetdramadata.append(drama)
-			except:
-				continue
-		return targetdramadata
 
 	def ret_linetv_drama_description_multi_run_wrapper(self, args):
 		return self.ret_linetv_drama_description(*args)
@@ -762,6 +809,21 @@ class Hamivideo(object):
 			i += 1
 		return dramas
 
+	def get_linetv_singleepidata(self, drama_id='', episode='', reqheaders=''):
+		epi_data = 'https://www.linetv.tw/api/part/'+str(drama_id)+'/eps/'+str(episode)+'/part?chocomemberId=null'
+		epi_data = self.requesturl_get_ret(epi_data, headers=reqheaders)
+		epi_data = self.parse_json_response(epi_data)
+		subtitleurl = epi_data['epsInfo']['source'][0]['links'][0]['subtitle']
+		if 'epsInfo' not in list(six.viewkeys(epi_data)):
+			return False #only VIP may watch
+		for_decrypt_post_data = {"keyType":epi_data['epsInfo']['source'][0]['links'][0]['keyType'],
+					"keyId":epi_data['epsInfo']['source'][0]['links'][0]['keyId'],
+					"dramaId":drama_id,
+					"eps":epi_data['dramaInfo']['eps']}
+		decryptdata = self.requesturl_post_ret('https://www.linetv.tw/api/part/dinosaurKeeper', data=for_decrypt_post_data, headers=reqheaders)
+		decryptdata = self.parse_json_response(decryptdata)
+		return epi_data, decryptdata, subtitleurl
+
 	def ret_linetv_episode_data_multi_run_wrapper(self, args):
 		return self.ret_linetv_episode_data(*args)
 
@@ -777,17 +839,7 @@ class Hamivideo(object):
 		}
 		#staticdramareq_prereq = 'https://static.linetv.tw/api/playback/'+str(drama_id)+'/'+str(episode)+'/'+str(drama_id)+'-eps-'+str(episode)
 		#staticdramareq_prereqret = self.requesturl_get_ret(staticdramareq_prereq, headers=reqheaders)
-		epi_data = 'https://www.linetv.tw/api/part/'+str(drama_id)+'/eps/'+str(episode)+'/part?chocomemberId=null'
-		epi_data = self.requesturl_get_ret(epi_data, headers=reqheaders)
-		epi_data = self.parse_json_response(epi_data)
-		if 'epsInfo' not in list(six.viewkeys(epi_data)):
-			return False #only VIP may watch
-		for_decrypt_post_data = {"keyType":epi_data['epsInfo']['source'][0]['links'][0]['keyType'],
-					"keyId":epi_data['epsInfo']['source'][0]['links'][0]['keyId'],
-					"dramaId":drama_id,
-					"eps":epi_data['dramaInfo']['eps']}
-		decryptdata = self.requesturl_post_ret('https://www.linetv.tw/api/part/dinosaurKeeper', data=for_decrypt_post_data, headers=reqheaders)
-		decryptdata = self.parse_json_response(decryptdata)
+		epi_data, decryptdata, subtitleurl = self.get_linetv_singleepidata(drama_id, episode, reqheaders)
 		multibitrateplaylist = epi_data['epsInfo']['source'][0]['links'][0]['link']
 		basepath = six.moves.urllib.parse.urlparse(multibitrateplaylist)
 		basepath = basepath.scheme+'://'+basepath.netloc+os.path.dirname(basepath.path)
@@ -795,8 +847,6 @@ class Hamivideo(object):
 		singlebitrateplaylist = six.moves.filter(lambda x: x.find('480p')!=-1, singlebitrateplaylist)
 		singlebitrateplaylist = six.moves.filter(lambda x: x.find('m3u8')!=-1, singlebitrateplaylist)
 		singlebitrateplaylist = basepath+'/'+next(singlebitrateplaylist)
-		#drama_data = self.ret_linetv_drama(drama_id)
-		#epi_data = self.merge_two_dicts(drama_data,epi_data)
 		epi_data = self.merge_two_dicts(epi_data,decryptdata)
 		reqheaders = self.merge_two_dicts(reqheaders, {
 				'authentication': epi_data['token'],
@@ -817,6 +867,7 @@ class Hamivideo(object):
 			'drama_id': drama_id,
 			'reqheaders': reqheaders,
 			'reqheaders_strs': reqheaders_strs,
+			'subtitle_url': subtitleurl
 			}
 		)
 		return epi_data

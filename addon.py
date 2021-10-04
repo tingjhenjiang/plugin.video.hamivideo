@@ -124,7 +124,16 @@ def list_linetodaychannels():
 def list_linetvchannels(churl="", type="parent"):
 	hamic = Hamivideo(settings)
 	if type=="parent":
-		channels = hamic.ret_linetv_main_menu_catgs()
+		channels = hamic.ret_linetv_main_menu_catgs(hamic.linetv_host_url)
+		channels = [{
+			'label': k,
+			'path': plugin.url_for('list_linetvchannels', churl=v, type='listsubcatgs'),
+			'icon': '',
+			'thumbnail': '',
+			'is_playable': False,
+		} for k,v in channels.items()]
+	if type=="listsubcatgs":
+		channels = hamic.ret_linetv_main_menu_catgs(churl)
 		channels = [{
 			'label': k,
 			'path': plugin.url_for('list_linetvchannels', churl=v, type='listdramas'),
@@ -133,19 +142,20 @@ def list_linetvchannels(churl="", type="parent"):
 			'is_playable': False,
 		} for k,v in channels.items()]
 	if type=="listdramas":
-		channels = hamic.ret_linetv_dramas_with_description_of_a_catg(churl)
+		#channels = hamic.ret_linetv_dramas_with_description_of_a_catg(churl)
+		channels = hamic.ret_linetv_dramas_of_a_catg(churl)
 		channels = [{
 			'label': c['name'],
 			'label2': c['description'],
-			'path': plugin.url_for('list_linetvchannels', churl=c['drama_id'], type='listeps'),
-			'icon': c['poster_url'],
-			'thumbnail': c['vertical_poster'],
+			'path': plugin.url_for('list_linetvchannels', churl=c['id'], type='listeps'),
+			'icon': c['posterUrl'],
+			'thumbnail': c['verticalPosterUrl'],
 			'info': c['info'],
 			'is_playable': False,
 		} for c in channels]
 	if type=='listeps':
 		drama = hamic.ret_linetv_drama(int(churl))
-		episode_args = [(int(churl), c) for c in range(1, drama['current_eps']+1)]
+		episode_args = [(int(churl), c) for c in range(1, drama['total_eps']+1)]
 		if threadpool_imported:
 			pool = ThreadPool(workers)
 			episodedatas = pool.map(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args)
@@ -158,7 +168,7 @@ def list_linetvchannels(churl="", type="parent"):
 		episodedatas = {int(d['episode']):d for d in episodedatas}
 		descriptions = {int(d['drama_episode']):d['drama_description'] for d in descriptions}
 		channels = list()
-		for c in range(1, int(drama['current_eps'])+1):
+		for c in range(1, int(drama['total_eps'])+1):
 			reqheaders = episodedatas[c]['reqheaders']
 			reqheaders_strs = episodedatas[c]['reqheaders_strs']
 			channel = {
@@ -169,14 +179,14 @@ def list_linetvchannels(churl="", type="parent"):
 				'thumbnail': drama['vertical_poster'],
 				'info': {'plot': descriptions[c]},
 				'properties': {
-					'inputstreamaddon': 'inputstream.adaptive',
-					'inputstream.adaptive.license_type': 'com.microsoft.playready', #,  'com.widevine.alpha'
+					'inputstream': 'inputstream.adaptive',
+					'inputstream.adaptive.license_type': 'com.widevine.alpha', #,  'com.microsoft.playready'
 					'inputstream.adaptive.manifest_type': 'hls',
 					'inputstream.adaptive.license_key': 'time='+str(round(time.time(),3)).replace('.','').ljust(13, '0')+'|'+reqheaders_strs+'||R', #str(int(time.time() ) )
 					#'inputstream.adaptive.stream_headers': reqheaders_strs,
 				},
 				'is_playable': True,
-				'setsubtitles': [episodedatas[c]['epsInfo']['source'][0]['links'][0]['subtitle']],
+				#'setsubtitles': episodedatas[c]['subtitle_url']
 			}
 			channels.append(channel)
 	return plugin.finish(channels)
@@ -470,10 +480,10 @@ def playchannel(churl, type="hami"):
 		streamingurl = hamic.get_better_q_streamingsrc(streamingurl)
 		streamingurl = streamingurl+"|User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36&referer=https://hamivideo.hinet.net&origin=https://hamivideo.hinet.net"
 		subtitleurl = None
-	elif type=='linetv':
-		epi_data = hamic.ret_linetv_episode_data(url=cchurl)
-		streamingurl = epi_data['multibitrateplaylist']
-		subtitleurl = epi_data['epsInfo']['source'][0]['links'][0]['subtitle']
+	#elif type=='linetv':
+	#	epi_data = hamic.ret_linetv_episode_data(url=cchurl)
+	#	streamingurl = epi_data['multibitrateplaylist']
+	#	subtitleurl = epi_data['epsInfo']['source'][0]['links'][0]['subtitle']
 	elif type=='viutv':
 		streamingurl = cchurl #hamic.ret_viutv(churl)['mpdurl']
 		subtitleurl = None
@@ -486,7 +496,7 @@ def playchannel(churl, type="hami"):
 			plugin.log.info('matching youtube url!')
 			youtube_video_id = re.match(".+youtube.com/.+v=([\w\d]+)",cchurl).group(1)
 			cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
-			plugin.log.info('transforme youtube url to '+cchurl)
+			plugin.log.info('transform youtube url to '+cchurl)
 		streamingurl = cchurl
 		subtitleurl = None
 	elif type=='linetoday':
