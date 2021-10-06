@@ -1,0 +1,159 @@
+# Kodi Media Center language file
+# Addon Name: plugin.video.youtube
+# Addon id: plugin.video.youtube
+# Addon Provider: bromix
+msgid ""
+msgstr ""
+"Project-Id-Version: XBMC-Addons\n"
+"Report-Msgid-Bugs-To: test@gmail.com\n"
+"POT-Creation-Date: 2015-09-21 11:01+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en_US\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+
+msgctxt "Addon Summary"
+msgid "Hamivideo"
+msgstr ""
+
+msgctxt "Addon Description"
+msgid "Hamivideo"
+msgstr ""
+
+msgctxt "Addon Disclaimer"
+msgid "This plugin is not endorsed by Google"
+msgstr ""
+
+# Kodi-addon Settings
+
+msgctxt "#30000"
+msgid "General"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Username"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Password"
+msgstr ""
+
+# empty strings from id 30003 to 30006
+
+msgctxt "#30007"
+msgid "Use MPEG-DASH"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Configure InputStream Adaptive"
+msgstr ""
+
+msgctxt "#30009"
+msgid "Always ask for the video quality"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Video quality"
+msgstr ""
+
+msgctxt "#30011"
+msgid "480p"
+msgstr ""
+
+msgctxt "#30012"
+msgid "720p (HD)"
+msgstr ""
+
+msgctxt "#30013"
+msgid "1080p (HD)"
+msgstr ""
+
+msgctxt "#30014"
+msgid "2160p (4k)"
+msgstr ""
+
+msgctxt "#30015"
+msgid "4320p (8k)"
+msgstr ""
+
+msgctxt "#30016"
+msgid "240p"
+msgstr ""
+
+msgctxt "#30017"
+msgid "360p"
+msgstr ""
+
+msgctxt "#30018"
+msgid "1080p Live / 720p (HD)"
+msgstr ""
+
+
+msgctxt "#30100"
+msgid "PTS plus"
+msgstr ""
+
+msgctxt "#30101"
+msgid "PTS plus ID"
+msgstr ""
+
+msgctxt "#30102"
+msgid "PTS plus Password"
+msgstr ""
+
+msgctxt "#30110"
+msgid "Hamivideo"
+msgstr ""
+
+msgctxt "#30111"
+msgid "Hamivideo ID"
+msgstr ""
+
+msgctxt "#30112"
+msgid "Hamivideo Password"
+msgstr ""
+
+msgctxt "#30200"
+msgid "Browser Settings"
+msgstr ""
+
+msgctxt "#30201"
+msgid "Browser"
+msgstr ""
+
+msgctxt "#30202"
+msgid "Selenium Log Path"
+msgstr ""
+
+msgctxt "#30203"
+msgid "chrome binary location"
+msgstr ""
+
+msgctxt "#30204"
+msgid "chromedriver path"
+msgstr ""
+
+msgctxt "#30205"
+msgid "firefoxbinary location"
+msgstr ""
+
+msgctxt "#30206"
+msgid "geckodriver path"
+msgstr ""
+
+msgctxt "#30207"
+msgid "docker remote selenium address"
+msgstr ""
+
+msgctxt "#30208"
+msgid "chrome ublock path"
+msgstr ""
+
+msgctxt "#30209"
+msgid "firefox ublock path"
+msgstr ""

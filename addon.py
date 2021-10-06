@@ -33,7 +33,8 @@ settings = {
 	'browser_type': plugin.get_setting('browser_type',  six.text_type),
 	'chromeublockpath': plugin.get_setting('chromeublockpath',  six.text_type),
 	'firefoxublockpath': plugin.get_setting('firefoxublockpath',  six.text_type),
-	'seleniumlogpath': plugin.get_setting('seleniumlogpath',  six.text_type)
+	'seleniumlogpath': plugin.get_setting('seleniumlogpath',  six.text_type),
+	'ptsplusloginidpw': (plugin.get_setting('ptsplusid', six.text_type),plugin.get_setting('ptspluspw', six.text_type))
 }
 
 
@@ -57,6 +58,11 @@ def index():
 	linetvlst = [{
 		'label': 'Linetv channels',
 		'path': plugin.url_for('list_linetvchannels', churl="default", type='parent', total_eps='default'),
+		'is_playable': False
+	}]
+	ptspluslst = [{
+		'label': 'PTS plus channels',
+		'path': plugin.url_for('list_ptspluschannels', churl="default", type='parent', total_eps='default'),
 		'is_playable': False
 	}]
 	viutvlst = [{
@@ -89,7 +95,7 @@ def index():
 		'is_playable': False
 	},]
 	#linetodaylst+maplestagelst+viutvlst+pokulst+
-	return plugin.finish(hamichlst+linetvlst+dramaqlst+directplaylst) #view_mode=50
+	return plugin.finish(hamichlst+linetvlst+ptspluslst+dramaqlst+directplaylst) #view_mode=50
 
 @plugin.route('/listhamichannels/')
 def list_hamichannels():
@@ -156,15 +162,8 @@ def list_linetvchannels(churl="", type="parent"):
 	if type=='listeps':
 		drama = hamic.ret_linetv_drama(int(churl))
 		episode_args = [(int(churl), c) for c in range(1, drama['total_eps']+1)]
-		if threadpool_imported:
-			pool = ThreadPool(workers)
-			episodedatas = pool.map(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args)
-			descriptions = pool.map(hamic.ret_linetv_drama_description_multi_run_wrapper, episode_args)
-			pool.close()
-			pool.join()
-		else:
-			episodedatas = [hamic.ret_linetv_episode_data_multi_run_wrapper(episode_arg) for episode_arg in episode_args]
-			descriptions = [hamic.ret_linetv_drama_description_multi_run_wrapper(episode_arg) for episode_arg in episode_args]
+		episodedatas = hamic.try_multi_run(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args)
+		descriptions = hamic.try_multi_run(hamic.ret_linetv_drama_description_multi_run_wrapper, episode_args)
 		episodedatas = {int(d['episode']):d for d in episodedatas}
 		descriptions = {int(d['drama_episode']):d['drama_description'] for d in descriptions}
 		channels = list()
@@ -189,6 +188,45 @@ def list_linetvchannels(churl="", type="parent"):
 				#'setsubtitles': episodedatas[c]['subtitle_url']
 			}
 			channels.append(channel)
+	return plugin.finish(channels)
+
+@plugin.route('/listptspluschannels/<type>/<churl>')
+def list_ptspluschannels(churl="", type="parent"):
+	hamic = Hamivideo(settings)
+	if type=="parent":
+		channels = hamic.ret_ptsplus_main_menu_catgs()
+		channels = [{
+			'label': v['genreName'],
+			'path': plugin.url_for('list_ptspluschannels', churl=v['genreId'], type='listprograms'),
+			'icon': '',
+			'thumbnail': '',
+			'is_playable': False,
+		} for v in channels]
+	if type=="listprograms":
+		channels = hamic.ret_ptsplus_programs_under_a_catg(churl)
+		plugin.log.info('genreId is: '+churl)
+		channels = [{
+			'label': v['titleLocal'],
+			'label2': '',
+			'path': plugin.url_for('list_ptspluschannels', churl=v['seasonId'], type='listeps'),
+			'info': {'plot': v['synopsisLocal']},
+			'thumbnail': v['artWorkImagesDict']['Season_KeyVisual'],
+			'icon': v['artWorkImagesDict']['Season_Post'],
+			'is_playable': False,
+		} for v in channels]
+	if type=="listeps":
+		plugin.log.info('seasonId is: '+churl)
+		channels = hamic.ret_ptsplus_episodes_under_a_program(churl)
+		channels = [{
+			'label': '第'+'{0:03d}'.format(v['episodeNumber'])+'集',
+			'label2': '',
+			'path': v['m3u8url'],
+			'info': {'plot': v['synopsisLocal']},
+			'thumbnail': v['artWorkImagesDict']['Episode_KeyVisual'],
+			'icon': v['artWorkImagesDict']['Episode_Post'],
+			'is_playable': True,
+		} for v in channels]
+		channels = sorted(channels, key=lambda k: k['label']) 
 	return plugin.finish(channels)
 
 #https://ewcdn14.nowe.com/session/p8-5-f9faefbc85c-318d3fad569f91c/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=64115504543cf37b453522b15e9d1f54_1590492587

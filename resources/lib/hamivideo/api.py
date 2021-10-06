@@ -22,11 +22,17 @@ try:
 except:
 	include_selenium = False
 	pass
+
 try:
 	from multiprocessing.dummy import Pool as ThreadPool
 	threadpool_imported = True
 except:
 	threadpool_imported = False
+try:
+	import multiprocessing
+	workers = multiprocessing.cpu_count()
+except:
+	workers = 4
 #from xbmcswift2 import Plugin, xbmc, xbmcaddon, xbmcgui, xbmcplugin
 
 #https://stackoverflow.com/questions/57167357/why-does-socket-interfere-with-selenium
@@ -42,7 +48,8 @@ class Hamivideo(object):
 		'browser_type': "remotech",
 		'chromeublockpath': "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\ublock_extension_1_24_2_0.crx",
 		'firefoxblockpath': "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\uBlock0_1.24.5rc1.firefox.signed.xpi",
-		'seleniumlogpath': "/home/pi/seleniumlogpath.txt"
+		'seleniumlogpath': "/home/pi/seleniumlogpath.txt",
+		'ptsplusloginidpw': (None,None)
 	}):
 		self.hamivideo_host_url = 'https://hamivideo.hinet.net/'
 		self.linetoday_url = 'https://today.line.me/'
@@ -52,11 +59,19 @@ class Hamivideo(object):
 		self.request_user_agent = 'User-Agent: '+self.useragent #Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36
 		self.mobile_request_useragent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
 		self.linetv_host_url = 'https://www.linetv.tw'
-		try:
-			import multiprocessing
-			self.workers = multiprocessing.cpu_count()
-		except:
-			self.workers = 4
+		self.workers = workers
+		self.ptsplusloginidpw = (binary_and_driver_path['ptsplusloginidpw'][0],binary_and_driver_path['ptsplusloginidpw'][1])
+		self.ptsplus_loginres = None
+
+	def try_multi_run(self,sp_multi_run_func,spargs):
+		if threadpool_imported:
+			pool = ThreadPool(workers)
+			datas = pool.map(sp_multi_run_func, spargs)
+			pool.close()
+			pool.join()
+		else:
+			datas = [sp_multi_run_func(sparg) for sparg in spargs]
+		return datas
 
 	def def_webdrive_binary_path(self, binary_and_driver_path):
 		self.binary_and_driver_path = binary_and_driver_path
@@ -70,13 +85,53 @@ class Hamivideo(object):
 		z.update(y)	# modifies z with y's keys and values & returns None
 		return z
 
-	def requesturl_get_ret(self, url, payload={}, headers={}):
-		r = requests.get(url, params=payload, headers=headers)
+	def requesturl_get_ret(self, url, params=None, **kwargs):
+		r = requests.get(url, params=params, **kwargs)
 		return r.text
 
-	def requesturl_post_ret(self, url, data={}, headers={}):
-		r = requests.post(url, data=data, headers=headers)
+	def requesturl_get_jsonret(self, url, params=None, **kwargs):
+		r = requests.get(url, params=params, **kwargs)
+		return self.parse_json_response(r.text)
+
+	def requesturl_post_ret(self, url, data=None, json=None, **kwargs):
+		r = requests.post(url, data=data, json=json, **kwargs)
 		return r.text
+
+	def requesturl_post_jsonret(self, url, data=None, json=None, **kwargs):
+		r = requests.post(url, data=data, json=json, **kwargs)
+		return self.parse_json_response(r.text)
+
+	def parse_json_response(self, content):
+		if isinstance(content, six.text_type) or isinstance(content, six.string_types):
+			try:
+				content = json.loads(content)
+			except:
+				content = content
+		if isinstance(content, list):
+			content = [self.parse_json_response(c) for c in content]
+		if isinstance(content, dict):
+			for key,v in content.items():
+				if isinstance(content[key], six.text_type)  or isinstance(content[key], six.string_types): #if (type(content[key]) is str or str(type(content[key])).find('unicode')!=-1):
+					try:
+						content[key] = self.parse_json_response(content[key])
+					except:
+						content[key] = content[key]
+				if isinstance(content[key], dict):
+					content[key] = self.parse_json_response(content[key])
+		return content
+
+	def correction_for_url_without_http_prefix(self, url, prfx='http://'):
+		matchresult = re.match(r'(ftp|http)://.*', url)
+		if matchresult==None:
+			url = prfx+re.sub(r'^//(.*)', r'\g<1>', url, count=0, flags=0)
+		return url
+
+	def unique(self, list1):
+		unique_list = []
+		for x in list1:
+			if x not in unique_list:
+				unique_list.append(x)
+		return unique_list
 
 	def ret_domelement_with_text(self, pattern, elements, iter=True):
 		ret_elements = list()
@@ -88,7 +143,7 @@ class Hamivideo(object):
 			except Exception as e:
 				continue				
 		return ret_elements
-	
+
 	def return_hamichannels(self):
 		html_doc = self.requesturl_get_ret(self.hamivideo_host_url+'%E9%9B%BB%E8%A6%96%E9%A4%A8/%E5%85%A8%E9%83%A8.do')
 		root = htmlement.fromstring(html_doc)
@@ -638,6 +693,98 @@ class Hamivideo(object):
 		craftedurlparameters = "&".join(craftedurlparameters)
 		return (maplestagestreamingurl+"|"+craftedurlparameters)
 
+	def ptspluslogin(self):
+		if self.ptsplus_loginres==None:
+			from requests.auth import HTTPBasicAuth
+			loginurl = 'https://www.ptsplus.tv/api/login'
+			loginpayload = {
+				"username":self.ptsplusloginidpw[0],
+				"password":self.ptsplusloginidpw[1],
+				"loginType":1,
+				"authorization":"MTE2MjBjYjgtOTczYy00ZDY5LTg0YmItYmE0ZjcxZDAyNDYwOkZoVlhVdTl4Zmp4NmR3TlVNd0Fw"
+				}
+			login_req_header = {
+				'accept': 'application/json, text/plain, */*',
+				'accept-encoding': 'gzip, deflate, br',
+				'accept-language': 'zh-TW,zh;q=0.9',
+				'asiaplay-device-model': 'Windows/NT 10.0/Chrome/94.0.4606.71',
+				'asiaplay-device-type': 'WEB_PC',
+				'asiaplay-device-version': '1.0.0.218',
+				'content-type': 'application/json',
+				'dnt': '1',
+				'origin': 'https://www.ptsplus.tv',
+				'referer': 'https://www.ptsplus.tv/login',
+				'sec-ch-ua': '"Chromium";v="94", "Google Chrome";v="94", ";Not A Brand";v="99"',
+				'sec-ch-ua-mobile': '?0',
+				'sec-ch-ua-platform': "Windows",
+				'sec-fetch-dest': 'empty',
+				'sec-fetch-mode': 'cors',
+				'sec-fetch-site': 'same-origin',
+				'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.71 Safari/537.36'
+				}
+			reqauthidpw = ('11620cb8-973c-4d69-84bb-ba4f71d02460','FhVXUu9xfjx6dwNUMwAp')
+			loginres = self.requesturl_post_ret(loginurl, json=loginpayload, headers=login_req_header, auth=HTTPBasicAuth(reqauthidpw[0], reqauthidpw[1]))
+			loginres = self.parse_json_response(loginres)
+			auth_after_login = {
+				'Authorization':'Bearer '+loginres['accessToken']
+			}
+			reqheader_after_login = self.merge_two_dicts(login_req_header,auth_after_login)
+			self.ptsplus_loginres = loginres
+			self.ptsplus_reqheader_after_login = reqheader_after_login
+			return {'loginres': loginres,'reqheader_after_login': reqheader_after_login}
+		else:
+			pass
+
+	def ret_ptsplus_main_menu_catgs(self):
+		self.ptspluslogin()
+		ptscatgsurl = 'https://prod-api.ptsplus.tv/program/channel?offset=0&limit=0'
+		catgs = self.requesturl_get_ret(ptscatgsurl,headers=self.ptsplus_reqheader_after_login)
+		catgs = self.parse_json_response(catgs)['data']
+		return catgs
+
+	def ret_ptsplus_programs_under_a_subcatg(self,genre=1,subgenre=1,limit=20):
+		self.ptspluslogin()
+		dramalisturl_under_a_catg = 'https://prod-api.ptsplus.tv/program/genre/{}-{}?limit={}&offset=0'.format(genre,subgenre,limit)
+		tp = self.requesturl_get_jsonret(dramalisturl_under_a_catg,headers=self.ptsplus_reqheader_after_login)
+		tp = tp['data']
+		return tp
+	
+	def ret_ptsplus_programs_under_a_subcatg_multi_run_wrapper(self, args):
+		return self.ret_ptsplus_programs_under_a_subcatg(*args)
+
+	def ret_ptsplus_programs_under_a_catg(self,genre=1,subgenrelimit=50):
+		spargs = [(int(genre), c) for c in range(subgenrelimit)]
+		datas = self.try_multi_run(self.ret_ptsplus_programs_under_a_subcatg_multi_run_wrapper, spargs)
+		programslist = six.moves.reduce(lambda x,y: x+y if len(y)>0 else x, datas, [])
+		programslist = self.ptsplus_convert_poster_img_json_format(programslist)
+		return programslist
+
+	def ret_ptsplus_episodes_under_a_program(self,pts_TVprogram_seasonid):
+		self.ptspluslogin()
+		pts_TVprogram_seasonlisturl_prefix = 'https://prod-api.ptsplus.tv/program/season/{}/videos?offset=0&limit=0'
+		pts_TVprogram_seasonlisturl = pts_TVprogram_seasonlisturl_prefix.format(pts_TVprogram_seasonid)
+		episodeslist = self.requesturl_get_jsonret(pts_TVprogram_seasonlisturl,headers=self.ptsplus_reqheader_after_login)
+		episodeslist = episodeslist['data']['Episode']
+		episodeslist = self.ptsplus_convert_poster_img_json_format(episodeslist)
+		for ep_i,ep in enumerate(episodeslist):
+			episodeslist[ep_i]['m3u8url'] = self.ret_ptsplus_video_streaming_url(ep['videoId'])
+		return episodeslist
+
+	def ptsplus_convert_poster_img_json_format(self,programslist):
+		for program_i,program in enumerate(programslist):
+			programslist[program_i]['artWorkImagesList'] = []
+			programslist[program_i]['artWorkImagesDict'] = {}
+			for artWork in program['artWorksList']:
+				key_artWork = artWork['type']
+				programslist[program_i]['artWorkImagesDict'][key_artWork] = six.moves.urllib.parse.quote_plus(artWork['fileURL'], safe=':/')
+				programslist[program_i]['artWorkImagesList'].append(six.moves.urllib.parse.quote_plus(artWork['fileURL'], safe=':/'))
+		return programslist
+
+	def ret_ptsplus_video_streaming_url(self,videoId):
+		pts_TVprogram_video_url_prefix = 'https://prod-api.ptsplus.tv/me/play/signedURL/detail/1080/playlist.m3u8?access_token={}&videoId={}'
+		pts_TVprogram_video_url = pts_TVprogram_video_url_prefix.format(self.ptsplus_loginres['accessToken'],videoId)
+		return pts_TVprogram_video_url
+
 	def ret_linetv_main_menu_catgs(self, catgurl=None):
 		if False:
 			return {
@@ -882,38 +1029,6 @@ class Hamivideo(object):
 		sdplaylist = self.ret_linetv_episode_data(url=url)
 		sdplaylist = sdplaylist['playlisturl']+"|Origin=https://www.linetv.tw|Referer=https://www.linetv.tw/drama/"+sdplaylist['drama_id']+"/eps/1|user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0|authentication="+sdplaylist['token']
 		return sdplaylist
-
-	def parse_json_response(self, content):
-		if isinstance(content, six.text_type) or isinstance(content, six.string_types):
-			try:
-				content = json.loads(content)
-			except:
-				content = content
-		if isinstance(content, list):
-			content = [self.parse_json_response(c) for c in content]
-		if isinstance(content, dict):
-			for key,v in content.items():
-				if isinstance(content[key], six.text_type)  or isinstance(content[key], six.string_types): #if (type(content[key]) is str or str(type(content[key])).find('unicode')!=-1):
-					try:
-						content[key] = self.parse_json_response(content[key])
-					except:
-						content[key] = content[key]
-				if isinstance(content[key], dict):
-					content[key] = self.parse_json_response(content[key])
-		return content
-
-	def correction_for_url_without_http_prefix(self, url, prfx='http://'):
-		matchresult = re.match(r'(ftp|http)://.*', url)
-		if matchresult==None:
-			url = prfx+re.sub(r'^//(.*)', r'\g<1>', url, count=0, flags=0)
-		return url
-
-	def unique(self, list1):
-		unique_list = []
-		for x in list1:
-			if x not in unique_list:
-				unique_list.append(x)
-		return unique_list
 
 	def generate_selenium_options(self):
 		chromeoptions = ChromeOptions()

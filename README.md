@@ -1,6 +1,6 @@
 # Introduction
 
-Allow Kodi to watch [HamiVideo](https://hamivideo.hinet.net/) and [LineTV](https://www.linetv.tw/)
+Allow Kodi to watch [HamiVideo](https://hamivideo.hinet.net/), [公視+ PTS plus](https://www.ptsplus.tv/) and [LineTV](https://www.linetv.tw/)
 
 # Prerequisites
 

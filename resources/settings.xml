@@ -1,11 +1,166 @@
-<settings>
-   <setting id="chromebinary_location" type="file" label="30001" default="D:\\PortableApps\\PortableApps\\GoogleChromePortable\\App\\Chrome-bin\\chrome.exe"/>
-   <setting id="chromedriver_path" type="file" label="30002" default="E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\chromedriver.exe"/>
-   <setting id="firefoxbinary_location" type="file" label="30003" default="/usr/bin/firefox"/>
-   <setting id="geckodriver_path" type="file" label="30004" default="/home/pi/kodi_addons/geckodriver"/>
-   <setting id="docker_remote_selenium_addr" type="text" label="30005" default="127.0.0.1:4444"/>
-   <setting id="browser_type" type="select" label="30006" values="chrome|firefox|remotech|remoteff" />
-   <setting id="chromeublockpath" type="file" label="30007" default="E:\Software\scripts\python\kodi_dev\plugin.video.hamivideo\ublock_extension_1_24_2_0.crx"/>
-   <setting id="firefoxblockpath" type="file" label="30008" default="E:\Software\scripts\python\kodi_dev\plugin.video.hamivideo\uBlock0_1.24.5rc1.firefox.signed.xpi"/>
-   <setting id="seleniumlogpath" type="file" label="30009" default="R:\\seleniumlogpath.txt"/>
+<?xml version="1.0" ?>
+<settings version="1">
+    <section id="plugin.video.hamivideo">
+        <category help="" id="loginapi" label="30000">
+            <group id="1" label="30100">
+                <setting help="" id="ptsplusid" label="30101" type="string">
+                    <level>0</level>
+                    <default/>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control format="string" type="edit">
+                        <heading>30101</heading>
+                    </control>
+                </setting>
+                <setting help="" id="ptspluspw" label="30102" type="string">
+                    <level>0</level>
+                    <default></default>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string">
+                        <hidden>true</hidden>
+                    </control>
+                    <dependencies>
+                        <dependency type="enable" setting="ptsplusid" operator="!is"></dependency>
+                    </dependencies>
+                </setting>
+            </group>
+            <group id="2" label="30110">
+                <setting help="" id="hamiid" label="30111" type="string">
+                    <level>0</level>
+                    <default/>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control format="string" type="edit">
+                        <heading>30111</heading>
+                    </control>
+                </setting>
+                <setting help="" id="hamipw" label="30112" type="string">
+                    <level>0</level>
+                    <default></default>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string">
+                        <hidden>true</hidden>
+                    </control>
+                    <dependencies>
+                        <dependency type="enable" setting="hamiid" operator="!is"></dependency>
+                    </dependencies>
+                </setting>
+            </group>
+        </category>
+        <category help="" id="browsersettings" label="30200">
+            <group id="1" label="">
+                <setting id="browser_type" type="string" label="30201" help="">
+                    <level>0</level>
+                    <default></default>
+                    <constraints>
+                        <options>
+                            <option>chrome</option>
+                            <option>firefox</option>
+                            <option>remotechrome</option>
+                            <option>remotefirefox</option>
+                        </options>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="list" format="string">
+                        <heading>30201</heading>
+                    </control>
+                </setting>
+                <setting id="seleniumlogpath" type="path" label="30202" help="">
+                    <level>0</level>
+                    <default>R:\\seleniumlogpath.txt</default>
+                    <constraints>
+                        <writable>false</writable>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="file">
+                        <heading>30202</heading>
+                    </control>
+                </setting>
+                <setting id="chromebinary_location" type="path" label="30203" help="">
+                    <level>0</level>
+                    <default>D:\\PortableApps\\PortableApps\\GoogleChromePortable\\App\\Chrome-bin\\chrome.exe</default>
+                    <constraints>
+                        <writable>false</writable>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="file">
+                        <heading>30203</heading>
+                    </control>
+                </setting>
+                <setting id="chromedriver_path" type="path" label="30204" help="">
+                    <level>0</level>
+                    <default>E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\chromedriver.exe</default>
+                    <constraints>
+                        <writable>false</writable>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="file">
+                        <heading>30204</heading>
+                    </control>
+                </setting>
+                <setting id="firefoxbinary_location" type="path" label="30205" help="">
+                    <level>0</level>
+                    <default>/usr/bin/firefox</default>
+                    <constraints>
+                        <writable>false</writable>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="file">
+                        <heading>30205</heading>
+                    </control>
+                </setting>
+                <setting id="geckodriver_path" type="path" label="30206" help="">
+                    <level>0</level>
+                    <default>/home/pi/kodi_addons/geckodriver</default>
+                    <constraints>
+                        <writable>false</writable>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="file">
+                        <heading>30206</heading>
+                    </control>
+                </setting>
+                <setting id="docker_remote_selenium_addr" type="string" label="30207" help="">
+                    <level>0</level>
+                    <default>127.0.0.1:4444</default>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string">
+                        <heading>30207</heading>
+                    </control>
+                </setting>
+                <setting id="chromeublockpath" type="path" label="30208" help="">
+                    <level>0</level>
+                    <default>E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\ublock_extension_1_24_2_0.crx</default>
+                    <constraints>
+                        <writable>false</writable>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="file">
+                        <heading>30208</heading>
+                    </control>
+                </setting>
+                <setting id="firefoxblockpath" type="path" label="30209" help="">
+                    <level>0</level>
+                    <default>E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\uBlock0_1.24.5rc1.firefox.signed.xpi</default>
+                    <constraints>
+                        <writable>false</writable>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="button" format="file">
+                        <heading>30209</heading>
+                    </control>
+                </setting>
+            </group>
+        </category>
+        <category help="" id="binarypaths" label="30300">
+        </category>
+    </section>
 </settings>
