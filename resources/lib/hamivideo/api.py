@@ -8,7 +8,6 @@ import time
 import os
 import random
 import base64
-import jsbeautifier
 import six
 try:
 	from selenium import webdriver
@@ -21,6 +20,11 @@ try:
 	from selenium.webdriver.common.by import By
 except:
 	include_selenium = False
+	pass
+try:
+	import jsbeautifier
+except:
+	include_jsbeautifier = False
 	pass
 
 try:
@@ -64,13 +68,16 @@ class Hamivideo(object):
 		self.ptsplus_loginres = None
 
 	def try_multi_run(self,sp_multi_run_func,spargs):
-		if threadpool_imported:
+		try:
 			pool = ThreadPool(workers)
 			datas = pool.map(sp_multi_run_func, spargs)
 			pool.close()
 			pool.join()
-		else:
+		except:
 			datas = [sp_multi_run_func(sparg) for sparg in spargs]
+		#if threadpool_imported:
+		#else:
+		#	datas = [sp_multi_run_func(sparg) for sparg in spargs]
 		return datas
 
 	def def_webdrive_binary_path(self, binary_and_driver_path):

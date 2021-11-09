@@ -94,8 +94,8 @@ def index():
 		'path': plugin.url_for('nextviewmode'),
 		'is_playable': False
 	},]
-	#linetodaylst+maplestagelst+viutvlst+pokulst+
-	return plugin.finish(hamichlst+linetvlst+ptspluslst+dramaqlst+directplaylst) #view_mode=50
+	#linetodaylst+maplestagelst+viutvlst+pokulst+dramaqlst+
+	return plugin.finish(hamichlst+linetvlst+ptspluslst+directplaylst) #view_mode=50
 
 @plugin.route('/listhamichannels/')
 def list_hamichannels():

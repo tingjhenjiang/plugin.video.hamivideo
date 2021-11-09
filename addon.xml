@@ -5,9 +5,7 @@
     <import addon="script.module.xbmcswift2" version="19.0.5"/>
     <import addon="script.module.requests" version="2.22.0+matrix.1"/>
     <import addon="script.module.htmlement" version="1.0.0+matrix.1"/>
-    <import addon="script.module.selenium"/>
     <import addon="script.module.six" version="1.14.0+matrix.2"/>
-    <import addon="script.module.jsbeautifier"/>
     <import addon="script.module.web-pdb" version="1.5.6+matrix.1"/>
     <import addon="inputstream.adaptive" version="2.6.7"/>
   </requires>
