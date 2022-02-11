@@ -43,28 +43,29 @@ except:
 
 class Hamivideo(object):
 
-	def __init__(self, binary_and_driver_path={
-		'chromedriver_path': "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.example\\chromedriver.exe",
-		'chromebinary_location': "D:\\PortableApps\\PortableApps\\GoogleChromePortable\\App\\Chrome-bin\\chrome.exe",
-		'geckodriver_path': "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.example\\geckodriver.exe",
-		'firefoxbinary_location': "D:\\PortableApps\\PortableApps\\FirefoxPortable\\App\\Firefox64\\firefox.exe",
-		'docker_remote_selenium_addr': "127.0.0.1:4444",
-		'browser_type': "remotech",
-		'chromeublockpath': "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\ublock_extension_1_24_2_0.crx",
-		'firefoxblockpath': "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\uBlock0_1.24.5rc1.firefox.signed.xpi",
-		'seleniumlogpath': "/home/pi/seleniumlogpath.txt",
-		'ptsplusloginidpw': (None,None)
-	}):
+	def __init__(self, **settings):
+		settings.setdefault('chromedriver_path', "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.example\\chromedriver.exe")
+		settings.setdefault('chromebinary_location', "D:\\PortableApps\\PortableApps\\GoogleChromePortable\\App\\Chrome-bin\\chrome.exe")
+		settings.setdefault('geckodriver_path', "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.example\\geckodriver.exe")
+		settings.setdefault('firefoxbinary_location', "D:\\PortableApps\\PortableApps\\FirefoxPortable\\App\\Firefox64\\firefox.exe")
+		settings.setdefault('docker_remote_selenium_addr', "127.0.0.1:4444")
+		settings.setdefault('browser_type', "remotech")
+		settings.setdefault('chromeublockpath', "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\ublock_extension_1_24_2_0.crx")
+		settings.setdefault('firefoxblockpath', "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\uBlock0_1.24.5rc1.firefox.signed.xpi")
+		settings.setdefault('seleniumlogpath', "/home/pi/seleniumlogpath.txt")
+		settings.setdefault('ptsplusloginidpw', (None,None))
+		settings.setdefault('hamiloginidpw', (None,None))
 		self.hamivideo_host_url = 'https://hamivideo.hinet.net/'
 		self.linetoday_url = 'https://today.line.me/'
-		self.def_webdrive_binary_path(binary_and_driver_path)
-		self.seleniumlogpath = binary_and_driver_path['seleniumlogpath']
+		self.def_webdrive_binary_path(settings)
+		self.seleniumlogpath = settings['seleniumlogpath']
 		self.useragent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0'
 		self.request_user_agent = 'User-Agent: '+self.useragent #Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36
 		self.mobile_request_useragent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
 		self.linetv_host_url = 'https://www.linetv.tw'
 		self.workers = workers
-		self.ptsplusloginidpw = (binary_and_driver_path['ptsplusloginidpw'][0],binary_and_driver_path['ptsplusloginidpw'][1])
+		self.ptsplusloginidpw = (settings['ptsplusloginidpw'][0],settings['ptsplusloginidpw'][1])
+		self.hamiloginidpw = (settings['hamiloginidpw'][0],settings['hamiloginidpw'][1])
 		self.ptsplus_loginres = None
 
 	def try_multi_run(self,sp_multi_run_func,spargs):
@@ -572,13 +573,13 @@ class Hamivideo(object):
 	def ret_hami_epg(self, channel_id):
 		pass
 
-	def ret_hami_streaming_url_by_req(self, channel_id, ret_session=False):
+	def ret_hami_streaming_url_by_req(self, channel_id, loginidpw=None, ret_session=False):
+		loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
 		reqheaders_std = {
 			'Origin': 'https://hamivideo.hinet.net',
-			#'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
 			'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
 			'Sec-Fetch-Site': 'same-origin',
-			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+			'Accept': '*/*; q=0.01',
 			'Accept-Encoding': 'gzip, deflate, br',
 			'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
 			'Host': 'hamivideo.hinet.net',
@@ -594,12 +595,13 @@ class Hamivideo(object):
 		session.headers.update(reqheaders_hamilogin)
 		response = session.get('https://hamivideo.hinet.net/index.do')
 		setcookies = session.cookies.get_dict()
-		setcookies_str = "; ".join([k+"="+v for k,v in setcookies.items()])
+		#setcookies_str = "; ".join([k+"="+v for k,v in setcookies.items()])
 		response = session.post('https://hamivideo.hinet.net/hamivideo/getDeviceLoginInfo.do', cookies=setcookies)
 		deviceinfo = response.text
+		
 		#https://hamivideo.hinet.net/hamivideo/app/login.do?deviceId=1d0155e5c5004366f36db9a5141272b9&deviceType=1&deviceOS=android_9&deviceVender=htc&deviceIp=192.168.1.120&deviceName=HTC_U-3u HTTP/1.1
 		response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'wifi'}, cookies=setcookies)
-		if (re.search("kick.do",response.text)!=None):
+		def kick_hami_alreadylogin(response=response,session=session):
 			#print("previous duplicated hamivideo login exists")
 			kickloginpagehtml = response.text
 			kickloginpagehtml_root = htmlement.fromstring(kickloginpagehtml)
@@ -613,12 +615,37 @@ class Hamivideo(object):
 			kicklogindata = self.merge_two_dicts(kickloginform_inputs, {'loginMethod': 'kick', 'authLoginId':'', 'otpw': earliest_login_device["logoutToken"], 'autoLogin':'', 'orig_otpw':''})
 			kicklogindata.pop('device')
 			response = session.post('https://hamivideo.hinet.net/hamivideo/loginTo.do', data=kicklogindata, cookies=setcookies)
-			setcookies = session.cookies.get_dict()
+			retcookies = session.cookies.get_dict()
+			return retcookies
+
+		if (re.search("kick.do",response.text)!=None):
+			setcookies = kick_hami_alreadylogin(response,session)
 		else:
-			pass #print("no duplicated hamivideo login")
+			#login with hn instead
+			response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'hn'}, cookies=setcookies)
+			loginformdata = six.moves.urllib.parse.parse_qs(response.url)
+			loginformdata = {k:v[0] for k,v in loginformdata.items()}
+			loginformdata['version'] = loginformdata.pop('https://member.cht.com.tw/HiReg/checkcookieservlet?version',1.0)
+			loginformdata['uid'] = loginidpw[0]
+			loginformdata['pw'] = loginidpw[1]
+			reqheaders_chthnlogin = self.merge_two_dicts(reqheaders_hamilogin, {
+				'Host': "member.cht.com.tw",
+				'Origin': 'https://member.cht.com.tw',
+				'Referer': response.url,
+			})
+			session.headers.update(reqheaders_chthnlogin)
+			chthn_loginUrl = 'https://member.cht.com.tw/HiReg/multiauthentication'
+			setcookies = session.cookies.get_dict()
+			response = session.post(chthn_loginUrl, params=loginformdata, cookies=setcookies)
+			setcookies = self.merge_two_dicts(session.cookies.get_dict(), response.cookies.get_dict())
+			session.headers.update(reqheaders_hamilogin)
+			#pass #print("no duplicated hamivideo login")
+			if (re.search("kick.do",response.text)!=None):
+				#print('duplicated hamivideo login, kicking')
+				setcookies = kick_hami_alreadylogin(response,session)
 		channelapiurl = 'https://hamivideo.hinet.net/api/play.do?id='+channel_id
+
 		response = session.get(channelapiurl, cookies=setcookies)
-		time.sleep(1)
 		responsejson = self.parse_json_response(response.text)
 		if ret_session==True:
 			return {'session':session, 'cookie': setcookies}

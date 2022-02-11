@@ -34,7 +34,8 @@ settings = {
 	'chromeublockpath': plugin.get_setting('chromeublockpath',  six.text_type),
 	'firefoxublockpath': plugin.get_setting('firefoxublockpath',  six.text_type),
 	'seleniumlogpath': plugin.get_setting('seleniumlogpath',  six.text_type),
-	'ptsplusloginidpw': (plugin.get_setting('ptsplusid', six.text_type),plugin.get_setting('ptspluspw', six.text_type))
+	'ptsplusloginidpw': (plugin.get_setting('ptsplusid', six.text_type),plugin.get_setting('ptspluspw', six.text_type)),
+	'hamiloginidpw': (plugin.get_setting('hamiid', six.text_type),plugin.get_setting('hamipw', six.text_type))
 }
 
 
@@ -99,7 +100,7 @@ def index():
 
 @plugin.route('/listhamichannels/')
 def list_hamichannels():
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	channels = hamic.return_hamichannels()
 	channels = [{
 		'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
@@ -114,7 +115,7 @@ def list_hamichannels():
 
 @plugin.route('/listlinetodaychannels/')
 def list_linetodaychannels():
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	channels = hamic.return_linetodaychs()
 	channels = [{
 		'label': c['name'],
@@ -128,7 +129,7 @@ def list_linetodaychannels():
 
 @plugin.route('/listlinetvchannels/<type>/<churl>')
 def list_linetvchannels(churl="", type="parent"):
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	if type=="parent":
 		channels = hamic.ret_linetv_main_menu_catgs(hamic.linetv_host_url)
 		channels = [{
@@ -192,7 +193,7 @@ def list_linetvchannels(churl="", type="parent"):
 
 @plugin.route('/listptspluschannels/<type>/<churl>')
 def list_ptspluschannels(churl="", type="parent"):
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	if type=="parent":
 		channels = hamic.ret_ptsplus_main_menu_catgs()
 		channels = [{
@@ -240,7 +241,7 @@ def list_ptspluschannels(churl="", type="parent"):
 #listitem.setContentLookup(False)
 @plugin.route('/listviutvchannels/<type>/<churl>')
 def list_viutvchannels(churl="", type="parent"):
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	channels = [hamic.ret_viutv(chid) for chid in ["096","099"]]
 	channels = [{
 			'label': c['name'],
@@ -275,7 +276,7 @@ def list_viutvchannels(churl="", type="parent"):
 
 @plugin.route('/listmaplestagedramas/<type>/<churl>')
 def list_maplestagechs(churl="", type="parent"):
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	if type=="parent":
 		channels = hamic.ret_maplestage_parent_catgs()
 		channels = [{
@@ -316,7 +317,7 @@ def list_maplestagechs(churl="", type="parent"):
 
 @plugin.route('/list_dramaq/<drama_name>')
 def list_dramaq(drama_name="None"):
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	if drama_name=="None":
 		drama_name = plugin.keyboard(six.ensure_str(''), heading="搜尋Dramaq/Qdrama")
 	else:
@@ -342,7 +343,7 @@ def nextviewmode():
 @plugin.route('/backgroundinfo')
 def backgroundinfo():
 	import platform, os
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	htmlsrc = "test"
 	items = [
 		{'label': plugin_storagepath},
@@ -375,7 +376,7 @@ def show_channel_detail(churl):
 
 @plugin.route('/list_pokuchannels/<churl>/<type>')
 def list_pokuchannels(churl='default', type='parent'):
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	nextmode = {
 		'parent': 'drama',
 		'drama': 'listepisodes',
@@ -491,7 +492,7 @@ def list_pokuchannels(churl='default', type='parent'):
 
 @plugin.route('/play/<type>/<churl>')
 def playchannel(churl, type="hami"):
-	hamic = Hamivideo(settings)
+	hamic = Hamivideo(**settings)
 	#hamic.clear_other_browser_processed()
 	if type in ['linetoday','maplestage','linetv','dramaq','poku']:
 		cchurl = churl.replace(fakemediaurl_suffix,'')
