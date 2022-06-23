@@ -7,6 +7,11 @@ try:
 	threadpool_imported = True
 except:
 	threadpool_imported = False
+try:
+	import YDStreamExtractor
+	yDStreamExtractor_imported = True
+except:
+	yDStreamExtractor_imported = False
 #import web_pdb
 
 socket.setdefaulttimeout(180)
@@ -531,11 +536,21 @@ def playchannel(churl, type="hami"):
 		streamingurl = streamingurl['videourl']+'|'+streamingurl['req_header_str']
 		subtitleurl = None
 	elif type=='direct':
-		if re.search('(youtube\.com|youtu\.be/)',cchurl)!=None:
-			plugin.log.info('matching youtube url!')
-			youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/)([^\s]+))",cchurl).group(3)
-			cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
-			plugin.log.info('transform youtube url to '+cchurl)
+		patternContainsYoutube = re.search('(youtube\.com|youtu\.be/)',cchurl)
+		if re.search('\.(m3u8|mp4|mov|rtsp|flv|mpd)',cchurl)!=None:
+			cchurl = cchurl
+		else:
+			try:
+				vid = YDStreamExtractor.getVideoInfo(cchurl,quality=2)
+				cchurl = vid.streamURL()
+			except Exception as errorYoutubeDL:
+				plugin.log.info('yDStreamExtractor_imported is'+str(yDStreamExtractor_imported))
+				plugin.log.info(str(errorYoutubeDL)+' error')
+				if patternContainsYoutube!=None:
+					youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/)([^\s]+))",cchurl).group(3)
+					cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
+					plugin.log.info('processed youtube url to '+cchurl)
+				cchurl = cchurl
 		streamingurl = cchurl
 		subtitleurl = None
 	elif type=='linetoday':
@@ -544,7 +559,7 @@ def playchannel(churl, type="hami"):
 	if re.search('(timed out|timeout|unknown error|connection refused)', streamingurl)!=None:
 		#hamic.clear_other_browser_processed()
 		pass
-	plugin.log.info('parsing result is: '+streamingurl)
+	plugin.log.info('result of parsing is: '+streamingurl)
 	plugin.set_resolved_url(streamingurl, subtitles=subtitleurl)
 
 
