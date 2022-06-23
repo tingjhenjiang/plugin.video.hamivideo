@@ -531,9 +531,9 @@ def playchannel(churl, type="hami"):
 		streamingurl = streamingurl['videourl']+'|'+streamingurl['req_header_str']
 		subtitleurl = None
 	elif type=='direct':
-		if re.search('youtube.com/watch\?v',cchurl)!=None:
+		if re.search('(youtube\.com|youtu\.be/)',cchurl)!=None:
 			plugin.log.info('matching youtube url!')
-			youtube_video_id = re.match(".+youtube.com/.+v=([\w\d]+)",cchurl).group(1)
+			youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/)([^\s]+))",cchurl).group(3)
 			cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
 			plugin.log.info('transform youtube url to '+cchurl)
 		streamingurl = cchurl

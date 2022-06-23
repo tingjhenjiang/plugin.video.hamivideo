@@ -648,7 +648,7 @@ class Hamivideo(object):
 		response = session.get(channelapiurl, cookies=setcookies)
 		responsejson = self.parse_json_response(response.text)
 		if ret_session==True:
-			return {'session':session, 'cookie': setcookies}
+			return {'session':session, 'cookie': setcookies, 'responsejson': responsejson}
 		else:
 			return responsejson['url']
 
