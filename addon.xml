@@ -8,6 +8,8 @@
     <import addon="script.module.six" version="1.14.0+matrix.2"/>
     <import addon="script.module.web-pdb" version="1.5.6+matrix.1"/>
     <import addon="inputstream.adaptive" version="2.6.7"/>
+    <import addon="script.module.youtube.dl" version="21.303.0+matrix.1"/>
+    <import addon="plugin.video.youtube" version="6.8.18+matrix.1"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="addon.py">
     <provides>video</provides>

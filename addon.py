@@ -537,7 +537,11 @@ def playchannel(churl, type="hami"):
 		subtitleurl = None
 	elif type=='direct':
 		patternContainsYoutube = re.search('(youtube\.com|youtu\.be/)',cchurl)
-		if re.search('\.(m3u8|mp4|mov|rtsp|flv|mpd)',cchurl)!=None:
+		if patternContainsYoutube!=None:
+			youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/)([^\s&\?]+))",cchurl).group(3)
+			cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
+			plugin.log.info('processed youtube url to '+cchurl)
+		elif re.search('\.(m3u8|mp4|mov|rtsp|flv|mpd)',cchurl)!=None:
 			cchurl = cchurl
 		else:
 			try:
@@ -546,10 +550,6 @@ def playchannel(churl, type="hami"):
 			except Exception as errorYoutubeDL:
 				plugin.log.info('yDStreamExtractor_imported is'+str(yDStreamExtractor_imported))
 				plugin.log.info(str(errorYoutubeDL)+' error')
-				if patternContainsYoutube!=None:
-					youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/)([^\s]+))",cchurl).group(3)
-					cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
-					plugin.log.info('processed youtube url to '+cchurl)
 				cchurl = cchurl
 		streamingurl = cchurl
 		subtitleurl = None
