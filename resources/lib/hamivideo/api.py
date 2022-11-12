@@ -169,13 +169,11 @@ class Hamivideo(object):
 				programtime = programtime.text
 			except Exception as e:
 				programtime = ""
-			program = elemtree.tostring(item.find(".//div[@class='com']"))
+			# program = item.find(".//div[@class='com']/p/a") #elemtree.tostring(item.find(".//div[@class='com']"))
 			try:
-				program = program.split("<p>")[1].split("</p>")[0]
-				program = htmlement.fromstring(program).find(".//a").text
+				program = list(item.itertext())[2]
 			except Exception as e:
-				#print(e)
-				program = ""
+				program = str(e)
 			main_menu_list.append({
 				'name': title,
 				'link': link,
