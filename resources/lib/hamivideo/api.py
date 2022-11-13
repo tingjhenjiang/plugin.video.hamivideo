@@ -119,7 +119,7 @@ class Hamivideo(object):
 			content = [self.parse_json_response(c) for c in content]
 		if isinstance(content, dict):
 			for key,v in content.items():
-				if isinstance(content[key], six.text_type)  or isinstance(content[key], six.string_types): #if (type(content[key]) is str or str(type(content[key])).find('unicode')!=-1):
+				if isinstance(content[key], six.text_type) or isinstance(content[key], six.string_types): #if (type(content[key]) is str or str(type(content[key])).find('unicode')!=-1):
 					try:
 						content[key] = self.parse_json_response(content[key])
 					except:
@@ -571,7 +571,7 @@ class Hamivideo(object):
 	def ret_hami_epg(self, channel_id):
 		pass
 
-	def ret_hami_streaming_url_by_req(self, channel_id, loginidpw=None, ret_session=False):
+	def ret_hami_streaming_url_by_req(self, channel_id, loginidpw=None, ret_session=False, currentRecursionDepth=0, allowedRecursionDepth=10):
 		loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
 		reqheaders_std = {
 			'Origin': 'https://hamivideo.hinet.net',
@@ -647,8 +647,15 @@ class Hamivideo(object):
 		responsejson = self.parse_json_response(response.text)
 		if ret_session==True:
 			return {'session':session, 'cookie': setcookies, 'responsejson': responsejson}
-		else:
+		elif 'url' in responsejson:
 			return responsejson['url']
+		elif currentRecursionDepth<=allowedRecursionDepth:
+			return self.ret_hami_streaming_url_by_req(channel_id, loginidpw=loginidpw, ret_session=ret_session, currentRecursionDepth=currentRecursionDepth+1, allowedRecursionDepth=allowedRecursionDepth)
+		else:
+			errorMessage = 'error in ret_hami_streaming_url_by_req for channel_id={}, ret_session={}, responsejson={}, currentRecursionDepth={}, allowedRecursionDepth={}'.format(
+				channel_id,ret_session,responsejson,currentRecursionDepth,allowedRecursionDepth
+			)
+			raise BaseException(errorMessage)
 
 	def ret_maplestage_streamingurl_by_req(self, singleepisodeurl):
 		maple_homepage = 'https://8maple.ru/'
