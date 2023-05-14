@@ -592,13 +592,14 @@ class Hamivideo(object):
 		session = requests.Session()
 		session.headers.update(reqheaders_hamilogin)
 		response = session.get('https://hamivideo.hinet.net/index.do')
+		indexdo_html = response.text
+		docloginFormothers = re.compile("do\?others=([A-Za-z\d]+)").search(indexdo_html).group(1)
 		setcookies = session.cookies.get_dict()
 		#setcookies_str = "; ".join([k+"="+v for k,v in setcookies.items()])
 		response = session.post('https://hamivideo.hinet.net/hamivideo/getDeviceLoginInfo.do', cookies=setcookies)
 		deviceinfo = response.text
-		
 		#https://hamivideo.hinet.net/hamivideo/app/login.do?deviceId=1d0155e5c5004366f36db9a5141272b9&deviceType=1&deviceOS=android_9&deviceVender=htc&deviceIp=192.168.1.120&deviceName=HTC_U-3u HTTP/1.1
-		response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'wifi'}, cookies=setcookies)
+		response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'wifi','others':docloginFormothers}, cookies=setcookies)
 		def kick_hami_alreadylogin(response=response,session=session):
 			# print("previous duplicated hamivideo login exists")
 			kickloginpagehtml = response.text
@@ -617,7 +618,17 @@ class Hamivideo(object):
 			earliest_login = sorted([d['loginTime'] for d in kicklogindevices])[0]
 			earliest_login_device = six.moves.filter(lambda x: x['loginTime']==earliest_login, kicklogindevices)
 			earliest_login_device = list(earliest_login_device)[0]
-			kicklogindata = self.merge_two_dicts(kickloginform_inputs, {'loginMethod': 'kick', 'authLoginId':'', 'otpw': earliest_login_device["logoutToken"], 'autoLogin':'', 'orig_otpw':''})
+			kicklogindata = self.merge_two_dicts(kickloginform_inputs, {
+				'loginMethod': 'kick',
+				'authLoginId':'',
+				'otpw': earliest_login_device["logoutToken"],
+				'autoLogin':'',
+				'others':docloginFormothers,
+				'authParam':'',
+				'hn_captcha':'',
+				'orig_loginMethod': earliest_login_device["deviceTypeId"],
+				'orig_otpw':'',
+			})
 			kicklogindata.pop('device')
 			response = session.post('https://hamivideo.hinet.net/hamivideo/loginTo.do', data=kicklogindata, cookies=setcookies)
 			retcookies = session.cookies.get_dict()
@@ -627,28 +638,30 @@ class Hamivideo(object):
 		if (re.search("kick.do",response.text)!=None):
 			setcookies = kick_hami_alreadylogin(response,session)
 		else:
-			#login with hn instead
-			response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'hn'}, cookies=setcookies)
-			loginformdata = six.moves.urllib.parse.parse_qs(response.url)
-			loginformdata = {k:v[0] for k,v in loginformdata.items()}
-			loginformdata['version'] = loginformdata.pop('https://member.cht.com.tw/HiReg/checkcookieservlet?version',1.0)
-			loginformdata['uid'] = loginidpw[0]
-			loginformdata['pw'] = loginidpw[1]
-			reqheaders_chthnlogin = self.merge_two_dicts(reqheaders_hamilogin, {
-				'Host': "member.cht.com.tw",
-				'Origin': 'https://member.cht.com.tw',
-				'Referer': response.url,
-			})
-			session.headers.update(reqheaders_chthnlogin)
-			chthn_loginUrl = 'https://member.cht.com.tw/HiReg/multiauthentication'
 			setcookies = session.cookies.get_dict()
-			response = session.post(chthn_loginUrl, params=loginformdata, cookies=setcookies)
-			setcookies = self.merge_two_dicts(session.cookies.get_dict(), response.cookies.get_dict())
-			session.headers.update(reqheaders_hamilogin)
-			#pass #print("no duplicated hamivideo login")
-			if (re.search("kick.do",response.text)!=None):
-				#print('duplicated hamivideo login, kicking')
-				setcookies = kick_hami_alreadylogin(response,session)
+			#login with hn instead (previous hn method)
+			if False:
+				response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'hn','others':docloginFormothers}, cookies=setcookies)
+				loginformdata = six.moves.urllib.parse.parse_qs(response.url)
+				loginformdata = {k:v[0] for k,v in loginformdata.items()}
+				loginformdata['version'] = loginformdata.pop('https://member.cht.com.tw/HiReg/checkcookieservlet?version',1.0)
+				loginformdata['uid'] = loginidpw[0]
+				loginformdata['pw'] = loginidpw[1]
+				reqheaders_chthnlogin = self.merge_two_dicts(reqheaders_hamilogin, {
+					'Host': "member.cht.com.tw",
+					'Origin': 'https://member.cht.com.tw',
+					'Referer': response.url,
+				})
+				session.headers.update(reqheaders_chthnlogin)
+				chthn_loginUrl = 'https://member.cht.com.tw/HiReg/multiauthentication'
+				setcookies = session.cookies.get_dict()
+				response = session.post(chthn_loginUrl, params=loginformdata, cookies=setcookies)
+				setcookies = self.merge_two_dicts(session.cookies.get_dict(), response.cookies.get_dict())
+				session.headers.update(reqheaders_hamilogin)
+				#pass #print("no duplicated hamivideo login")
+				if (re.search("kick.do",response.text)!=None):
+					#print('duplicated hamivideo login, kicking')
+					setcookies = kick_hami_alreadylogin(response,session)
 		channelapiurl = 'https://hamivideo.hinet.net/api/play.do?id='+channel_id
 
 		response = session.get(channelapiurl, cookies=setcookies)
