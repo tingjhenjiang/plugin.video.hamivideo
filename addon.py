@@ -521,7 +521,7 @@ def playchannel(churl, type="hami"):
 	elif type=='hami':
 		channelid = os.path.basename(cchurl).replace('.do','')
 		streamingurl = hamic.ret_hami_streaming_url_by_req(channelid)
-		# streamingurl = hamic.get_better_q_streamingsrc(streamingurl)
+		# streamingurl = hamic.get_hami_better_q_streamingsrc(streamingurl)
 		streamingurl = streamingurl+"|User-Agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36&referer=https://hamivideo.hinet.net&origin=https://hamivideo.hinet.net"
 		subtitleurl = None
 	#elif type=='linetv':

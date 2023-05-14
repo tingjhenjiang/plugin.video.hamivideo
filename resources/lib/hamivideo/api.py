@@ -1415,11 +1415,18 @@ class Hamivideo(object):
 			needlog = ("get streamingurl of ch error: "+excepterror)
 		return needlog
 
-	def get_better_q_streamingsrc(self, streamingurl, newq='4'):
-		p = re.compile('index{1}_?\d?.m3u8')
-		#streamingurl = p.sub('index_'+newq+'.m3u8', streamingurl)
-		streamingurl = p.sub('index.m3u8', streamingurl)
-		return streamingurl
+	def get_hami_better_q_streamingsrc(self, streamingurl, newq='1920x1080'):
+		p = re.compile('{newq}.+\n(.+)'.format(newq=newq))
+		headers = {
+			'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
+			'referer':'https://hamivideo.hinet.net&origin=https://hamivideo.hinet.net'
+		}
+		m3u8_content = self.requesturl_get_ret(streamingurl, headers=headers)
+		parsed_url = six.moves.urllib.parse.urlparse(streamingurl)._asdict()
+		newpathbase = parsed_url.pop('path')
+		newpathbase = '/'.join(newpathbase.split('/')[:-1])
+		newstreamingurl = '{scheme}://{netloc}{newpathbase}/{newpath}'.format(**parsed_url,newpathbase=newpathbase,newpath=p.search(m3u8_content).group(1))
+		return newstreamingurl
 
 '''
 https://video.8maple.ru/yandisk/?w=600&h=445&url=63619D61B26ADAAFD3899B667E77DFD78380B788936996A594CF67D4A85FD1CE95ABCAA694ABCCC9C79F626A5DABA8A67771B87FC6606369629668877866869A68579E768A7A9A8A9B71586A645BAB9B5B72AA5BA67357756A89729B5868A5926560D2A49964CCD3C695AB609D69DB9B_yandisk
@@ -1476,7 +1483,7 @@ if __name__ == '__main__':
 		elif type=='hami':
 			channelid = os.path.basename(cchurl).replace('.do','')
 			streamingurl = hamic.ret_hami_streaming_url_by_req(channelid)
-			streamingurl = hamic.get_better_q_streamingsrc(streamingurl)
+			streamingurl = hamic.get_hami_better_q_streamingsrc(streamingurl)
 			subtitleurl = None
 		elif type=='linetv':
 			epi_data = hamic.ret_linetv_episode_data(url=cchurl)
