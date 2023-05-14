@@ -575,7 +575,7 @@ class Hamivideo(object):
 		loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
 		reqheaders_std = {
 			'Origin': 'https://hamivideo.hinet.net',
-			'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
+			'user-agent': self.useragent,# 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
 			'Sec-Fetch-Site': 'same-origin',
 			'Accept': '*/*; q=0.01',
 			'Accept-Encoding': 'gzip, deflate, br',
