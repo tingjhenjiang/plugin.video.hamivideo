@@ -600,12 +600,19 @@ class Hamivideo(object):
 		#https://hamivideo.hinet.net/hamivideo/app/login.do?deviceId=1d0155e5c5004366f36db9a5141272b9&deviceType=1&deviceOS=android_9&deviceVender=htc&deviceIp=192.168.1.120&deviceName=HTC_U-3u HTTP/1.1
 		response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'wifi'}, cookies=setcookies)
 		def kick_hami_alreadylogin(response=response,session=session):
-			#print("previous duplicated hamivideo login exists")
+			# print("previous duplicated hamivideo login exists")
 			kickloginpagehtml = response.text
 			kickloginpagehtml_root = htmlement.fromstring(kickloginpagehtml)
-			kickloginform = kickloginpagehtml_root.find(".//form[@id='formPage']")
-			actionurl = kickloginform.get('action')
-			kickloginform_inputs = {elem.get('name'):elem.get('value') for elem in kickloginform.findall(".//input")}
+			if kickloginpagehtml_root.text is None:
+				actionurl = re.compile('<form.+action="(.+)">').search(kickloginpagehtml).group(1)
+				canbekicked_devices = re.compile('<input.+name="(.+)"\svalue="(.+)".*>').findall(kickloginpagehtml)
+				kickloginform_inputs = {v[0]:v[1] for v in canbekicked_devices}
+				import html
+				kickloginform_inputs['device'] = html.unescape(kickloginform_inputs['device'])
+			else:
+				kickloginform = kickloginpagehtml_root.find(".//form[@id='formPage']")
+				actionurl = kickloginform.get('action')
+				kickloginform_inputs = {elem.get('name'):elem.get('value') for elem in kickloginform.findall(".//input")}
 			kicklogindevices = self.parse_json_response(kickloginform_inputs['device'])
 			earliest_login = sorted([d['loginTime'] for d in kicklogindevices])[0]
 			earliest_login_device = six.moves.filter(lambda x: x['loginTime']==earliest_login, kicklogindevices)
@@ -614,6 +621,7 @@ class Hamivideo(object):
 			kicklogindata.pop('device')
 			response = session.post('https://hamivideo.hinet.net/hamivideo/loginTo.do', data=kicklogindata, cookies=setcookies)
 			retcookies = session.cookies.get_dict()
+			# print(f'actionurl is {actionurl} and if equals is {actionurl=="https://hamivideo.hinet.net/hamivideo/loginTo.do"}')
 			return retcookies
 
 		if (re.search("kick.do",response.text)!=None):
