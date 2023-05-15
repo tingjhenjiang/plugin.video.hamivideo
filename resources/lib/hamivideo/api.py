@@ -59,7 +59,7 @@ class Hamivideo(object):
 		self.linetoday_url = 'https://today.line.me/'
 		self.def_webdrive_binary_path(settings)
 		self.seleniumlogpath = settings['seleniumlogpath']
-		self.useragent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0'
+		self.useragent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0' # 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
 		self.request_user_agent = 'User-Agent: '+self.useragent #Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36
 		self.mobile_request_useragent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
 		self.linetv_host_url = 'https://www.linetv.tw'
@@ -208,7 +208,7 @@ class Hamivideo(object):
 	def ret_dramaq_episodes(self, drama_name):
 		dramaq_homepage = 'https://www.qdrama.tv'
 		reqheaders_std = {
-			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
+			'User-Agent': self.useragent,
 			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 			'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
 			'Connection': 'keep-alive',
@@ -279,7 +279,7 @@ class Hamivideo(object):
 	def ret_dramaq_streaming_url_by_req(self, need_episode_url):
 		dramaq_homepage = 'https://www.qdrama.tv'
 		reqheaders_std = {
-			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
+			'User-Agent': self.useragent,
 			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 			'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
 			'Connection': 'keep-alive',
@@ -365,16 +365,16 @@ class Hamivideo(object):
 		mode = opt[1]
 		homepage = "https://poku.tv"
 		reqheaders_std = {
-				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
-				'Connection': 'keep-alive',
-				'DNT': '1',
-				'sec-fetch-dest': 'document',
-				'sec-fetch-mode': 'navigate',
-				'sec-fetch-site': 'none',
-				'sec-fetch-user': '?1',
-				'upgrade-insecure-requests': '1',
-				'cache-control': 'max-age=0'
-			}
+			'User-Agent': self.useragent,
+			'Connection': 'keep-alive',
+			'DNT': '1',
+			'sec-fetch-dest': 'document',
+			'sec-fetch-mode': 'navigate',
+			'sec-fetch-site': 'none',
+			'sec-fetch-user': '?1',
+			'upgrade-insecure-requests': '1',
+			'cache-control': 'max-age=0'
+		}
 		session = requests.Session()
 		session.headers.update(reqheaders_std)
 		response = session.get(homepage)
@@ -681,7 +681,7 @@ class Hamivideo(object):
 	def ret_maplestage_streamingurl_by_req(self, singleepisodeurl):
 		maple_homepage = 'https://8maple.ru/'
 		reqheaders_std = {
-			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
+			'User-Agent': self.useragent,
 			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
 			'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
 			'Connection': 'keep-alive',
@@ -780,7 +780,7 @@ class Hamivideo(object):
 				'sec-fetch-dest': 'empty',
 				'sec-fetch-mode': 'cors',
 				'sec-fetch-site': 'same-origin',
-				'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.71 Safari/537.36'
+				'user-agent': self.useragent,
 				}
 			reqauthidpw = ('11620cb8-973c-4d69-84bb-ba4f71d02460','FhVXUu9xfjx6dwNUMwAp')
 			loginres = self.requesturl_post_ret(loginurl, json=loginpayload, headers=login_req_header, auth=HTTPBasicAuth(reqauthidpw[0], reqauthidpw[1]))
@@ -1126,7 +1126,7 @@ class Hamivideo(object):
 		self.caps_ff = caps_ff
 		self.firefoxprofile = firefoxprofile
 
-	def GetNetworkResources(self, driver, ret="name"):
+	def getNetworkResources(self, driver, ret="name"):
 		Resources = driver.execute_script("return window.performance.getEntries();")
 		names = [resource['name'] for resource in Resources]
 		if (ret=="name"):
@@ -1333,7 +1333,7 @@ class Hamivideo(object):
 		except Exception as e:
 			performancelogs = str(e)
 		try:
-			networklogs = self.GetNetworkResources(driver)
+			networklogs = self.getNetworkResources(driver)
 		except Exception as e:
 			networklogs = str(e)
 		return {'networklogs': networklogs, 'performancelogs': performancelogs, 'minorlogs': minorlogs}
@@ -1416,16 +1416,21 @@ class Hamivideo(object):
 		return needlog
 
 	def get_hami_better_q_streamingsrc(self, streamingurl, newq='1920x1080'):
-		p = re.compile('{newq}.+\n(.+)'.format(newq=newq))
+		pattern = re.compile('{newq}.+\n(.+)'.format(newq=newq))
 		headers = {
-			'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
-			'referer':'https://hamivideo.hinet.net&origin=https://hamivideo.hinet.net'
+			'User-Agent':self.request_user_agent,
+			'referer':'https://hamivideo.hinet.net',
+			'origin':'https://hamivideo.hinet.net',
 		}
 		m3u8_content = self.requesturl_get_ret(streamingurl, headers=headers)
 		parsed_url = six.moves.urllib.parse.urlparse(streamingurl)._asdict()
 		newpathbase = parsed_url.pop('path')
 		newpathbase = '/'.join(newpathbase.split('/')[:-1])
-		newstreamingurl = '{scheme}://{netloc}{newpathbase}/{newpath}'.format(**parsed_url,newpathbase=newpathbase,newpath=p.search(m3u8_content).group(1))
+		newstreamingurl = '{scheme}://{netloc}{newpathbase}/{newpath}'.format(
+			**parsed_url,
+			newpathbase=newpathbase,
+			newpath=pattern.search(m3u8_content).group(1)
+			)
 		return newstreamingurl
 
 '''
