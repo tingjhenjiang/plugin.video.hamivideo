@@ -1418,7 +1418,7 @@ class Hamivideo(object):
 	def get_hami_better_q_streamingsrc(self, streamingurl, newq='1920x1080'):
 		pattern = re.compile('{newq}.+\n(.+)'.format(newq=newq))
 		headers = {
-			'User-Agent':self.request_user_agent,
+			'User-Agent':self.useragent,
 			'referer':'https://hamivideo.hinet.net',
 			'origin':'https://hamivideo.hinet.net',
 		}
