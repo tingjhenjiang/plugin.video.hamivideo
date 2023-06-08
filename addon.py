@@ -539,7 +539,7 @@ def playchannel(churl, type="hami"):
 	elif type=='direct':
 		patternContainsYoutube = re.search('(youtube\.com|youtu\.be/)',cchurl)
 		if patternContainsYoutube!=None:
-			youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/)([^\s&\?]+))",cchurl).group(3)
+			youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/|youtube\.com/live/)([^\s&\?]+))",cchurl).group(3)
 			cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
 			plugin.log.info('processed youtube url to '+cchurl)
 		elif re.search('\.(m3u8|mp4|mov|rtsp|flv|mpd)',cchurl)!=None:

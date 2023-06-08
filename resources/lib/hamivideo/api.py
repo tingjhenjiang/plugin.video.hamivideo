@@ -669,8 +669,10 @@ class Hamivideo(object):
 		if ret_session==True:
 			return {'session':session, 'cookie': setcookies, 'responsejson': responsejson}
 		elif 'url' in responsejson:
+			# raise ValueError(f'responsejson is {responsejson}')
 			return responsejson['url']
 		elif currentRecursionDepth<=allowedRecursionDepth:
+			# raise ValueError(f'in recursion')
 			return self.ret_hami_streaming_url_by_req(channel_id, loginidpw=loginidpw, ret_session=ret_session, currentRecursionDepth=currentRecursionDepth+1, allowedRecursionDepth=allowedRecursionDepth)
 		else:
 			errorMessage = 'error in ret_hami_streaming_url_by_req for channel_id={}, ret_session={}, responsejson={}, currentRecursionDepth={}, allowedRecursionDepth={}'.format(
@@ -1488,7 +1490,7 @@ if __name__ == '__main__':
 		elif type=='hami':
 			channelid = os.path.basename(cchurl).replace('.do','')
 			streamingurl = hamic.ret_hami_streaming_url_by_req(channelid)
-			streamingurl = hamic.get_hami_better_q_streamingsrc(streamingurl)
+			# streamingurl = hamic.get_hami_better_q_streamingsrc(streamingurl)
 			subtitleurl = None
 		elif type=='linetv':
 			epi_data = hamic.ret_linetv_episode_data(url=cchurl)
