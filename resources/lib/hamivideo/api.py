@@ -755,13 +755,19 @@ class Hamivideo(object):
 		craftedurlparameters = "&".join(craftedurlparameters)
 		return (maplestagestreamingurl+"|"+craftedurlparameters)
 
-	def ptspluslogin(self):
+	def ptspluslogin(self, ptsplusloginidpw=None):
+		if ptsplusloginidpw==None:
+			loginid = self.ptsplusloginidpw[0]
+			loginpw = self.ptsplusloginidpw[1]
+		else:
+			loginid = ptsplusloginidpw[0]
+			loginpw = ptsplusloginidpw[1]
 		if self.ptsplus_loginres==None:
 			from requests.auth import HTTPBasicAuth
 			loginurl = 'https://www.ptsplus.tv/api/login'
 			loginpayload = {
-				"username":self.ptsplusloginidpw[0],
-				"password":self.ptsplusloginidpw[1],
+				"username":loginid,
+				"password":loginpw,
 				"loginType":1,
 				"authorization":"MTE2MjBjYjgtOTczYy00ZDY5LTg0YmItYmE0ZjcxZDAyNDYwOkZoVlhVdTl4Zmp4NmR3TlVNd0Fw"
 				}
@@ -797,15 +803,15 @@ class Hamivideo(object):
 		else:
 			pass
 
-	def ret_ptsplus_main_menu_catgs(self):
-		self.ptspluslogin()
+	def ret_ptsplus_main_menu_catgs(self,loginidpw=None):
+		self.ptspluslogin(ptsplusloginidpw=loginidpw)
 		ptscatgsurl = 'https://prod-api.ptsplus.tv/program/channel?offset=0&limit=0'
 		catgs = self.requesturl_get_ret(ptscatgsurl,headers=self.ptsplus_reqheader_after_login)
 		catgs = self.parse_json_response(catgs)['data']
 		return catgs
 
-	def ret_ptsplus_programs_under_a_subcatg(self,genre=1,subgenre=1,limit=20):
-		self.ptspluslogin()
+	def ret_ptsplus_programs_under_a_subcatg(self,genre=1,subgenre=1,limit=20,loginidpw=None):
+		self.ptspluslogin(ptsplusloginidpw=loginidpw)
 		dramalisturl_under_a_catg = 'https://prod-api.ptsplus.tv/program/genre/{}-{}?limit={}&offset=0'.format(genre,subgenre,limit)
 		tp = self.requesturl_get_jsonret(dramalisturl_under_a_catg,headers=self.ptsplus_reqheader_after_login)
 		tp = tp['data']
@@ -821,16 +827,47 @@ class Hamivideo(object):
 		programslist = self.ptsplus_convert_poster_img_json_format(programslist)
 		return programslist
 
-	def ret_ptsplus_episodes_under_a_program(self,pts_TVprogram_seasonid):
-		self.ptspluslogin()
+	def ret_ptsplus_episodes_under_a_program(self,pts_TVprogram_seasonid,loginidpw=None):
+		self.ptspluslogin(ptsplusloginidpw=loginidpw)
 		pts_TVprogram_seasonlisturl_prefix = 'https://prod-api.ptsplus.tv/program/season/{}/videos?offset=0&limit=0'
 		pts_TVprogram_seasonlisturl = pts_TVprogram_seasonlisturl_prefix.format(pts_TVprogram_seasonid)
 		episodeslist = self.requesturl_get_jsonret(pts_TVprogram_seasonlisturl,headers=self.ptsplus_reqheader_after_login)
 		episodeslist = episodeslist['data']['Episode']
 		episodeslist = self.ptsplus_convert_poster_img_json_format(episodeslist)
 		for ep_i,ep in enumerate(episodeslist):
-			episodeslist[ep_i]['m3u8url'] = self.ret_ptsplus_video_streaming_url(ep['videoId'])
+			# Youtube video in PTS
+			if 'youtubeEmbed' in ep and ep['youtubeEmbed']!='':
+				episodeslist[ep_i]['m3u8url'] = self.ret_ptsplus_youtube_video_url(youtubeVidId=ep['youtubeEmbed'])
+				print("url is {}".format(episodeslist[ep_i]['m3u8url']))
+			else:
+				episodeslist[ep_i]['m3u8url'] = self.ret_ptsplus_video_streaming_url(ep['videoId'])
 		return episodeslist
+
+	def ret_ptsplus_youtube_video_url(self, youtubeVidId):
+		ytApikey_ptsplus = ""
+		youtubeApiUrl = f"https://www.youtube.com/youtubei/v1/player?key={ytApikey_ptsplus}&prettyPrint=false"
+		req_json_data = {
+			"videoId": youtubeVidId,
+			"context": {
+				"client": {
+					"clientName": "WEB_EMBEDDED_PLAYER",
+					"clientVersion": "1.20230627.01.00",
+					"originalUrl": f"https://www.youtube.com/embed/{youtubeVidId}?origin=https%3A%2F%2Fwww.ptsplus.tv&widgetid=2",
+				}
+			}
+		}
+		# print(f"req_json_data is {req_json_data}")
+		youtubeApiRetData = self.requesturl_post_jsonret(youtubeApiUrl, json=req_json_data, headers={'Host':"www.googleapis.com"}) #self.ptsplus_reqheader_after_login
+		# print(f"youtubeApiRetData is {youtubeApiRetData}")
+		youtubeApiRetStreamingData = youtubeApiRetData['streamingData']
+		if 'hlsManifestUrl' in youtubeApiRetStreamingData:
+			return youtubeApiRetStreamingData['hlsManifestUrl']
+		elif 'dashManifestUrl' in youtubeApiRetStreamingData:
+			return youtubeApiRetStreamingData['dashManifestUrl']
+		else:
+			print(f"\n\n youtubeApiRetStreamingData is {youtubeApiRetStreamingData} \n\n")
+			return f"error in ret_ptsplus_youtube_video_url at {youtubeVidId}"
+
 
 	def ptsplus_convert_poster_img_json_format(self,programslist):
 		for program_i,program in enumerate(programslist):
@@ -842,7 +879,8 @@ class Hamivideo(object):
 				programslist[program_i]['artWorkImagesList'].append(six.moves.urllib.parse.quote_plus(artWork['fileURL'], safe=':/'))
 		return programslist
 
-	def ret_ptsplus_video_streaming_url(self,videoId):
+	def ret_ptsplus_video_streaming_url(self,videoId,loginidpw=None):
+		self.ptspluslogin(ptsplusloginidpw=loginidpw)
 		pts_TVprogram_video_url_prefix = 'https://prod-api.ptsplus.tv/me/play/signedURL/detail/1080/playlist.m3u8?access_token={}&videoId={}'
 		pts_TVprogram_video_url = pts_TVprogram_video_url_prefix.format(self.ptsplus_loginres['accessToken'],videoId)
 		return pts_TVprogram_video_url
@@ -1452,6 +1490,8 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--type", help="video host")
 	parser.add_argument("--churl", help="video url")
+	parser.add_argument("--ptsloginid", help="ptsloginid")
+	parser.add_argument("--ptsloginpw", help="ptsloginpw")
 	args = parser.parse_args()
 	type = args.type
 	churl = args.churl
@@ -1499,6 +1539,13 @@ if __name__ == '__main__':
 		elif type=='linetoday':
 			streamingurl = hamic.get_streamingurl_of_ch(cchurl, type=type, logtype='networklogs')
 			subtitleurl = None
+		elif type=='ptsplus_ch':
+			loginpw = (args.ptsloginid, args.ptsloginpw)
+			streamingurl = hamic.ret_ptsplus_episodes_under_a_program(pts_TVprogram_seasonid=churl,loginidpw=loginpw)
+			streamingurl = json.dumps(streamingurl)
+		elif type=='ptsplus_video':
+			loginpw = (args.ptsloginid, args.ptsloginpw)
+			streamingurl = hamic.ret_ptsplus_video_streaming_url(cchurl,loginidpw=loginpw)
 		if re.search('(timed out|timeout|unknown error|connection refused)', streamingurl)!=None:
 			pass
 		else:
