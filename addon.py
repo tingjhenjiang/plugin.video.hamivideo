@@ -41,7 +41,7 @@ settings = {
 	'seleniumlogpath': plugin.get_setting('seleniumlogpath',  six.text_type),
 	'ptsplusloginidpw': (plugin.get_setting('ptsplusid', six.text_type),plugin.get_setting('ptspluspw', six.text_type)),
 	'hamiloginidpw': (plugin.get_setting('hamiid', six.text_type),plugin.get_setting('hamipw', six.text_type)),
-	'youtube_api_key': plugin.get_setting('youtube_api_key')	
+	'youtube_api_key': plugin.get_setting('youtube_api_key', six.text_type)	
 }
 
 
