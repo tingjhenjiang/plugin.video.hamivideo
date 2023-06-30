@@ -55,6 +55,7 @@ class Hamivideo(object):
 		settings.setdefault('seleniumlogpath', "/home/pi/seleniumlogpath.txt")
 		settings.setdefault('ptsplusloginidpw', (None,None))
 		settings.setdefault('hamiloginidpw', (None,None))
+		settings.setdefault('youtube_api_key', None)
 		self.hamivideo_host_url = 'https://hamivideo.hinet.net/'
 		self.linetoday_url = 'https://today.line.me/'
 		self.def_webdrive_binary_path(settings)
@@ -65,6 +66,7 @@ class Hamivideo(object):
 		self.linetv_host_url = 'https://www.linetv.tw'
 		self.workers = workers
 		self.ptsplusloginidpw = (settings['ptsplusloginidpw'][0],settings['ptsplusloginidpw'][1])
+		self.youtube_api_key = settings['youtube_api_key']
 		self.hamiloginidpw = (settings['hamiloginidpw'][0],settings['hamiloginidpw'][1])
 		self.ptsplus_loginres = None
 
@@ -837,36 +839,43 @@ class Hamivideo(object):
 		for ep_i,ep in enumerate(episodeslist):
 			# Youtube video in PTS
 			if 'youtubeEmbed' in ep and ep['youtubeEmbed']!='':
-				episodeslist[ep_i]['m3u8url'] = self.ret_ptsplus_youtube_video_url(youtubeVidId=ep['youtubeEmbed'])
-				print("url is {}".format(episodeslist[ep_i]['m3u8url']))
+				episodeslist[ep_i]['m3u8url'] = self.ret_ptsplus_youtube_video_url(youtube_video_id=ep['youtubeEmbed'])
+				# print("url is {}".format(episodeslist[ep_i]['m3u8url']))
 			else:
 				episodeslist[ep_i]['m3u8url'] = self.ret_ptsplus_video_streaming_url(ep['videoId'])
 		return episodeslist
 
-	def ret_ptsplus_youtube_video_url(self, youtubeVidId):
-		ytApikey_ptsplus = ""
-		youtubeApiUrl = f"https://www.youtube.com/youtubei/v1/player?key={ytApikey_ptsplus}&prettyPrint=false"
-		req_json_data = {
-			"videoId": youtubeVidId,
-			"context": {
-				"client": {
-					"clientName": "WEB_EMBEDDED_PLAYER",
-					"clientVersion": "1.20230627.01.00",
-					"originalUrl": f"https://www.youtube.com/embed/{youtubeVidId}?origin=https%3A%2F%2Fwww.ptsplus.tv&widgetid=2",
+	def ret_ptsplus_youtube_video_url(self, youtube_video_id):
+		ytApikey_ptsplus = self.youtube_api_key
+		if ytApikey_ptsplus is not None and ytApikey_ptsplus!="":
+			youtubeApiUrl = f"https://www.youtube.com/youtubei/v1/player?key={ytApikey_ptsplus}&prettyPrint=false"
+			req_json_data = {
+				"videoId": youtube_video_id,
+				"context": {
+					"client": {
+						"clientName": "WEB_EMBEDDED_PLAYER",
+						"clientVersion": "1.20230627.01.00",
+						"originalUrl": f"https://www.youtube.com/embed/{youtube_video_id}?origin=https%3A%2F%2Fwww.ptsplus.tv&widgetid=2",
+					}
 				}
 			}
-		}
-		# print(f"req_json_data is {req_json_data}")
-		youtubeApiRetData = self.requesturl_post_jsonret(youtubeApiUrl, json=req_json_data, headers={'Host':"www.googleapis.com"}) #self.ptsplus_reqheader_after_login
-		# print(f"youtubeApiRetData is {youtubeApiRetData}")
-		youtubeApiRetStreamingData = youtubeApiRetData['streamingData']
-		if 'hlsManifestUrl' in youtubeApiRetStreamingData:
-			return youtubeApiRetStreamingData['hlsManifestUrl']
-		elif 'dashManifestUrl' in youtubeApiRetStreamingData:
-			return youtubeApiRetStreamingData['dashManifestUrl']
+			# print(f"req_json_data is {req_json_data}")
+			youtubeApiRetData = self.requesturl_post_jsonret(youtubeApiUrl, json=req_json_data, headers={'Host':"www.googleapis.com"}) #self.ptsplus_reqheader_after_login
+			# print(f"youtubeApiRetData is {youtubeApiRetData}")
+			youtubeApiRetStreamingData = youtubeApiRetData['streamingData']
+			if 'hlsManifestUrl' in youtubeApiRetStreamingData:
+				return youtubeApiRetStreamingData['hlsManifestUrl']
+			elif 'dashManifestUrl' in youtubeApiRetStreamingData:
+				return youtubeApiRetStreamingData['dashManifestUrl']
+			elif 'adaptiveFormats' in youtubeApiRetStreamingData:
+				return youtubeApiRetStreamingData['adaptiveFormats'][0]['url']
+			elif 'formats' in youtubeApiRetStreamingData:
+				return youtubeApiRetStreamingData['formats'][-1]['url']
+			else:
+				print(f"\n\n youtubeApiRetStreamingData is {youtubeApiRetStreamingData} \n\n")
+				return f"error in ret_ptsplus_youtube_video_url at {youtube_video_id}"
 		else:
-			print(f"\n\n youtubeApiRetStreamingData is {youtubeApiRetStreamingData} \n\n")
-			return f"error in ret_ptsplus_youtube_video_url at {youtubeVidId}"
+			return "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
 
 
 	def ptsplus_convert_poster_img_json_format(self,programslist):

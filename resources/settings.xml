@@ -26,6 +26,16 @@
                         <dependency type="enable" setting="ptsplusid" operator="!is"></dependency>
                     </dependencies>
                 </setting>
+                <setting help="" id="youtube_api_key" label="30103" type="string">
+                    <level>0</level>
+                    <default></default>
+                    <constraints>
+                        <allowempty>true</allowempty>
+                    </constraints>
+                    <control type="edit" format="string">
+                        <hidden>true</hidden>
+                    </control>
+                </setting>
             </group>
             <group id="2" label="30110">
                 <setting help="" id="hamiid" label="30111" type="string">

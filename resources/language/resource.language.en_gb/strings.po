@@ -105,6 +105,10 @@ msgctxt "#30102"
 msgid "PTS plus Password"
 msgstr ""
 
+msgctxt "#30103"
+msgid "Youtube API Key"
+msgstr ""
+
 msgctxt "#30110"
 msgid "Hamivideo"
 msgstr ""
