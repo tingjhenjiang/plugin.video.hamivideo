@@ -588,11 +588,11 @@ class Hamivideo(object):
 		with open(self.settings['hamilogin_cookieinf']['filename'], mode, newline='') as jsonfile:
 			if mode=='w':
 				json.dump(data, jsonfile) #settings['hamilogin_cookieinf']['cookieinf']
-				print(f"write logging info complete")
+				# print(f"write logging info complete")
 				return True
 			else:
 				data = json.load(jsonfile)
-				print(f"load logging info complete")
+				# print(f"load logging info complete")
 				return data
 
 	def ret_hami_streaming_url_by_req(self, channel_id, loginidpw=None, ret_session=False, currentRecursionDepth=0, allowedRecursionDepth=10):
