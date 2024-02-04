@@ -17,7 +17,6 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 
-
 msgctxt "Addon Summary"
 msgid "Hamivideo"
 msgstr ""
@@ -109,6 +108,14 @@ msgstr ""
 
 msgctxt "#30103"
 msgid "Youtube API Key"
+msgstr ""
+
+msgctxt "#30104"
+msgid "PTS plus login checksum"
+msgstr ""
+
+msgctxt "#30105"
+msgid "PTS plus login X-Api-key"
 msgstr ""
 
 msgctxt "#30110"

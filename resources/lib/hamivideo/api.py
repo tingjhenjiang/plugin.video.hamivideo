@@ -4,8 +4,8 @@ import sys
 import xml.etree.ElementTree as elemtree
 import json
 import re
-import time
 import os
+from pathlib import Path
 import random
 import base64
 import six
@@ -54,19 +54,30 @@ class Hamivideo(object):
 		settings.setdefault('firefoxblockpath', "E:\\Software\\scripts\\python\\kodi_dev\\plugin.video.hamivideo\\uBlock0_1.24.5rc1.firefox.signed.xpi")
 		settings.setdefault('seleniumlogpath', "/home/pi/seleniumlogpath.txt")
 		settings.setdefault('ptsplusloginidpw', (None,None))
+		settings.setdefault('ptsplusloginchecksum', None)
+		settings.setdefault('ptsplusloginxapikey', None)
 		settings.setdefault('hamiloginidpw', (None,None))
 		settings.setdefault('youtube_api_key', None)
-		self.hamivideo_host_url = 'https://hamivideo.hinet.net/'
+		settings.setdefault('hamilogin_cookieinf', {
+			'filename':Path(os.path.realpath(__file__)).parent / 'hamilogininf.txt',
+			'cookieinf':None
+			})
+		with open(settings['hamilogin_cookieinf']['filename'], 'r', newline='') as jsonfile:
+			try:
+				tplogindata = json.load(jsonfile)
+				settings['hamilogin_cookieinf']['cookieinf'] = tplogindata
+			except json.JSONDecodeError as e:
+				settings['hamilogin_cookieinf']['cookieinf'] = {}
+		settings['ptsplusloginidpw'] = (settings['ptsplusloginidpw'][0],settings['ptsplusloginidpw'][1])
+		settings['hamivideo_host_url'] = 'https://hamivideo.hinet.net/'
+		self.settings = settings
 		self.linetoday_url = 'https://today.line.me/'
 		self.def_webdrive_binary_path(settings)
-		self.seleniumlogpath = settings['seleniumlogpath']
 		self.useragent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0' # 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
 		self.request_user_agent = 'User-Agent: '+self.useragent #Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.106 Safari/537.36
 		self.mobile_request_useragent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
 		self.linetv_host_url = 'https://www.linetv.tw'
 		self.workers = workers
-		self.ptsplusloginidpw = (settings['ptsplusloginidpw'][0],settings['ptsplusloginidpw'][1])
-		self.youtube_api_key = settings['youtube_api_key']
 		self.hamiloginidpw = (settings['hamiloginidpw'][0],settings['hamiloginidpw'][1])
 		self.ptsplus_loginres = None
 
@@ -155,15 +166,15 @@ class Hamivideo(object):
 		return ret_elements
 
 	def return_hamichannels(self):
-		html_doc = self.requesturl_get_ret(self.hamivideo_host_url+'%E9%9B%BB%E8%A6%96%E9%A4%A8/%E5%85%A8%E9%83%A8.do')
+		html_doc = self.requesturl_get_ret(self.settings['hamivideo_host_url']+'%E9%9B%BB%E8%A6%96%E9%A4%A8/%E5%85%A8%E9%83%A8.do')
 		root = htmlement.fromstring(html_doc)
 		main_menu_list = []
 		for item in root.findall(".//div[@class='tvListBlock']/div[@class='list_item']"):
 			title = item.find(".//h3/a").text
-			#link = self.hamivideo_host_url+item.find(".//h3/a").get("href")
+			#link = self.settings['hamivideo_host_url']+item.find(".//h3/a").get("href")
 			#link = link.replace("//","/")
 			link = item.find(".//h3/a").get("onclick")
-			link = self.hamivideo_host_url+re.findall("sendUrl\(\'(.+\.do)\',", link)[0]
+			link = self.settings['hamivideo_host_url']+re.findall(r"sendUrl\(\'(.+\.do)\',", link)[0]
 			channelid = os.path.basename(link).replace('.do','')
 			channel_icon = item.find(".//img").get("src")
 			programtime = item.find(".//div[@class='time']")
@@ -229,11 +240,11 @@ class Hamivideo(object):
 		}))
 		dramaq_homepage_root = htmlement.fromstring(response.text)
 		searchbox = dramaq_homepage_root.find(".//div[@class='search_box']//script").text
-		searchboxcx = re.findall("cx\s=\s\'(.+)\'\;", searchbox)[0]
+		searchboxcx = re.findall(r"cx\s=\s\'(.+)\'\;", searchbox)[0]
 		searchbox = 'https://cse.google.com/cse.js?cx='+searchboxcx
 		searchboxresponse = session.get(searchbox)
-		cse_token = re.findall("cse_token\":\s\"(.+)\",", searchboxresponse.text)[0]
-		cselibVersion = re.findall("cselibVersion\":\s\"(.+)\",", searchboxresponse.text)[0]
+		cse_token = re.findall(r"cse_token\":\s\"(.+)\",", searchboxresponse.text)[0]
+		cselibVersion = re.findall(r"cselibVersion\":\s\"(.+)\",", searchboxresponse.text)[0]
 		dramaq_search_url = 'https://cse.google.com/cse/element/v1'
 		dramaq_search_url_data = {
 			'rsz':'filtered_cse',
@@ -250,9 +261,9 @@ class Hamivideo(object):
 			'q':six.moves.urllib.parse.unquote(drama_name),
 		}
 		response = requests.get(dramaq_search_url, cookies=setcookies, params=dramaq_search_url_data)
-		dramaq_search_results = re.findall("google\.search\.cse.+\(({[\w\d\s\W\D\S]+})\);", response.text)
+		dramaq_search_results = re.findall(r"google\.search\.cse.+\(({[\w\d\s\W\D\S]+})\);", response.text)
 		dramaq_search_results = self.parse_json_response(dramaq_search_results)[0]["results"]
-		dramaq_search_results = six.moves.filter(lambda x: re.search("\d+\.html", x['url'])==None, dramaq_search_results)
+		dramaq_search_results = six.moves.filter(lambda x: re.search(r"\d+\.html", x['url'])==None, dramaq_search_results)
 		dramaq_drama_link = next(dramaq_search_results)['url']
 		response = session.get(dramaq_drama_link)
 		response.encoding = 'UTF-8'
@@ -316,7 +327,7 @@ class Hamivideo(object):
 		dramaq_singleepisode_player_root = htmlement.fromstring(response.text)
 		dramaq_streamingurl = dramaq_singleepisode_player_root.findall(".//script")
 		dramaq_streamingurl = [x.text for x in dramaq_streamingurl if x.text!=None and re.search('var m3u8url',x.text)!=None][0].strip()
-		dramaq_streamingurl = re.findall("var\sm3u8url\s=\s\'(.+)\'(\r|\n|\s)", dramaq_streamingurl)[0][0]
+		dramaq_streamingurl = re.findall(r"var\sm3u8url\s=\s\'(.+)\'(\r|\n|\s)", dramaq_streamingurl)[0][0]
 		return dramaq_streamingurl
 
 	def return_litv(self, url):
@@ -446,7 +457,7 @@ class Hamivideo(object):
 				allpagesnum = root.find(".//div[@class='page_tips hidden_mb']").itertext()
 				allpagesnum = [a.strip() for a in allpagesnum]
 				allpagesnum = six.ensure_str("".join(allpagesnum))
-				allpagesnum = re.search("共有(\d+)頁", allpagesnum)
+				allpagesnum = re.search(r"共有(\d+)頁", allpagesnum)
 				allpagesnum = allpagesnum.group(1)
 				linktemplate = homepage+lastpagelink.replace("-"+allpagesnum, "-TARGETNUM");
 				allpagesnum = int(allpagesnum)
@@ -573,7 +584,19 @@ class Hamivideo(object):
 	def ret_hami_epg(self, channel_id):
 		pass
 
+	def gset_hamilogin_inf(self, mode='r', data=None):
+		with open(self.settings['hamilogin_cookieinf']['filename'], mode, newline='') as jsonfile:
+			if mode=='w':
+				json.dump(data, jsonfile) #settings['hamilogin_cookieinf']['cookieinf']
+				print(f"write logging info complete")
+				return True
+			else:
+				data = json.load(jsonfile)
+				print(f"load logging info complete")
+				return data
+
 	def ret_hami_streaming_url_by_req(self, channel_id, loginidpw=None, ret_session=False, currentRecursionDepth=0, allowedRecursionDepth=10):
+		channelapiurl = 'https://hamivideo.hinet.net/api/play.do?id='+channel_id
 		loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
 		reqheaders_std = {
 			'Origin': 'https://hamivideo.hinet.net',
@@ -593,81 +616,89 @@ class Hamivideo(object):
 		})
 		session = requests.Session()
 		session.headers.update(reqheaders_hamilogin)
-		response = session.get('https://hamivideo.hinet.net/index.do')
-		indexdo_html = response.text
-		docloginFormothers = re.compile("do\?others=([A-Za-z\d]+)").search(indexdo_html).group(1)
-		setcookies = session.cookies.get_dict()
-		#setcookies_str = "; ".join([k+"="+v for k,v in setcookies.items()])
-		response = session.post('https://hamivideo.hinet.net/hamivideo/getDeviceLoginInfo.do', cookies=setcookies)
-		deviceinfo = response.text
-		#https://hamivideo.hinet.net/hamivideo/app/login.do?deviceId=1d0155e5c5004366f36db9a5141272b9&deviceType=1&deviceOS=android_9&deviceVender=htc&deviceIp=192.168.1.120&deviceName=HTC_U-3u HTTP/1.1
-		response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'wifi','others':docloginFormothers}, cookies=setcookies)
-		def kick_hami_alreadylogin(response=response,session=session):
-			# print("previous duplicated hamivideo login exists")
-			kickloginpagehtml = response.text
-			kickloginpagehtml_root = htmlement.fromstring(kickloginpagehtml)
-			if kickloginpagehtml_root.text is None:
-				actionurl = re.compile('<form.+action="(.+)">').search(kickloginpagehtml).group(1)
-				canbekicked_devices = re.compile('<input.+name="(.+)"\svalue="(.+)".*>').findall(kickloginpagehtml)
-				kickloginform_inputs = {v[0]:v[1] for v in canbekicked_devices}
-				import html
-				kickloginform_inputs['device'] = html.unescape(kickloginform_inputs['device'])
-			else:
-				kickloginform = kickloginpagehtml_root.find(".//form[@id='formPage']")
-				actionurl = kickloginform.get('action')
-				kickloginform_inputs = {elem.get('name'):elem.get('value') for elem in kickloginform.findall(".//input")}
-			kicklogindevices = self.parse_json_response(kickloginform_inputs['device'])
-			earliest_login = sorted([d['loginTime'] for d in kicklogindevices])[0]
-			earliest_login_device = six.moves.filter(lambda x: x['loginTime']==earliest_login, kicklogindevices)
-			earliest_login_device = list(earliest_login_device)[0]
-			kicklogindata = self.merge_two_dicts(kickloginform_inputs, {
-				'loginMethod': 'kick',
-				'authLoginId':'',
-				'otpw': earliest_login_device["logoutToken"],
-				'autoLogin':'',
-				'others':docloginFormothers,
-				'authParam':'',
-				'hn_captcha':'',
-				'orig_loginMethod': earliest_login_device["deviceTypeId"],
-				'orig_otpw':'',
-			})
-			kicklogindata.pop('device')
-			response = session.post('https://hamivideo.hinet.net/hamivideo/loginTo.do', data=kicklogindata, cookies=setcookies)
-			retcookies = session.cookies.get_dict()
-			# print(f'actionurl is {actionurl} and if equals is {actionurl=="https://hamivideo.hinet.net/hamivideo/loginTo.do"}')
-			return retcookies
-
-		if (re.search("kick.do",response.text)!=None):
-			setcookies = kick_hami_alreadylogin(response,session)
-		else:
-			setcookies = session.cookies.get_dict()
-			#login with hn instead (previous hn method)
-			if False:
-				response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'hn','others':docloginFormothers}, cookies=setcookies)
-				loginformdata = six.moves.urllib.parse.parse_qs(response.url)
-				loginformdata = {k:v[0] for k,v in loginformdata.items()}
-				loginformdata['version'] = loginformdata.pop('https://member.cht.com.tw/HiReg/checkcookieservlet?version',1.0)
-				loginformdata['uid'] = loginidpw[0]
-				loginformdata['pw'] = loginidpw[1]
-				reqheaders_chthnlogin = self.merge_two_dicts(reqheaders_hamilogin, {
-					'Host': "member.cht.com.tw",
-					'Origin': 'https://member.cht.com.tw',
-					'Referer': response.url,
-				})
-				session.headers.update(reqheaders_chthnlogin)
-				chthn_loginUrl = 'https://member.cht.com.tw/HiReg/multiauthentication'
-				setcookies = session.cookies.get_dict()
-				response = session.post(chthn_loginUrl, params=loginformdata, cookies=setcookies)
-				setcookies = self.merge_two_dicts(session.cookies.get_dict(), response.cookies.get_dict())
-				session.headers.update(reqheaders_hamilogin)
-				#pass #print("no duplicated hamivideo login")
-				if (re.search("kick.do",response.text)!=None):
-					#print('duplicated hamivideo login, kicking')
-					setcookies = kick_hami_alreadylogin(response,session)
-		channelapiurl = 'https://hamivideo.hinet.net/api/play.do?id='+channel_id
-
-		response = session.get(channelapiurl, cookies=setcookies)
+		response = session.get(channelapiurl, cookies=self.settings['hamilogin_cookieinf']['cookieinf'])
 		responsejson = self.parse_json_response(response.text)
+
+		if 'url' not in responsejson: # when previous saved cookie not work in retrieving data
+			response = session.get('https://hamivideo.hinet.net/index.do')
+			indexdo_html = response.text
+			docloginFormothers = re.compile(r"do\?others=([A-Za-z\d]+)").search(indexdo_html).group(1)
+			setcookies = session.cookies.get_dict()
+			#setcookies_str = "; ".join([k+"="+v for k,v in setcookies.items()])
+			response = session.post('https://hamivideo.hinet.net/hamivideo/getDeviceLoginInfo.do', cookies=setcookies)
+			deviceinfo = response.text
+			#https://hamivideo.hinet.net/hamivideo/app/login.do?deviceId=1d0155e5c5004366f36db9a5141272b9&deviceType=1&deviceOS=android_9&deviceVender=htc&deviceIp=192.168.1.120&deviceName=HTC_U-3u HTTP/1.1
+			response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'wifi','others':docloginFormothers}, cookies=setcookies)
+			def kick_hami_alreadylogin(response=response,session=session):
+				# print("previous duplicated hamivideo login exists")
+				kickloginpagehtml = response.text
+				kickloginpagehtml_root = htmlement.fromstring(kickloginpagehtml)
+				if kickloginpagehtml_root.text is None:
+					actionurl = re.compile('<form.+action="(.+)">').search(kickloginpagehtml).group(1)
+					canbekicked_devices = re.compile(r'<input.+name="(.+)"\svalue="(.+)".*>').findall(kickloginpagehtml)
+					kickloginform_inputs = {v[0]:v[1] for v in canbekicked_devices}
+					import html
+					kickloginform_inputs['device'] = html.unescape(kickloginform_inputs['device'])
+				else:
+					kickloginform = kickloginpagehtml_root.find(".//form[@id='formPage']")
+					actionurl = kickloginform.get('action')
+					kickloginform_inputs = {elem.get('name'):elem.get('value') for elem in kickloginform.findall(".//input")}
+				kicklogindevices = self.parse_json_response(kickloginform_inputs['device'])
+				earliest_login = sorted([d['loginTime'] for d in kicklogindevices])[0]
+				earliest_login_device = six.moves.filter(lambda x: x['loginTime']==earliest_login, kicklogindevices)
+				earliest_login_device = list(earliest_login_device)[0]
+				kicklogindata = self.merge_two_dicts(kickloginform_inputs, {
+					'loginMethod': 'kick',
+					'authLoginId':'',
+					'otpw': earliest_login_device["logoutToken"],
+					'autoLogin':'',
+					'others':docloginFormothers,
+					'authParam':'',
+					'hn_captcha':'',
+					'orig_loginMethod': earliest_login_device["deviceTypeId"],
+					'orig_otpw':'',
+				})
+				kicklogindata.pop('device')
+				response = session.post('https://hamivideo.hinet.net/hamivideo/loginTo.do', data=kicklogindata, cookies=setcookies)
+				retcookies = session.cookies.get_dict()
+				# print(f'actionurl is {actionurl} and if equals is {actionurl=="https://hamivideo.hinet.net/hamivideo/loginTo.do"}')
+				return retcookies
+
+			if (re.search("kick.do",response.text)!=None):
+				setcookies = kick_hami_alreadylogin(response,session)
+			else:
+				setcookies = session.cookies.get_dict()
+				#login with hn instead (previous hn method)
+				if False:
+					response = session.post('https://hamivideo.hinet.net/loginTo.do', params={'loginMethod': 'hn','others':docloginFormothers}, cookies=setcookies)
+					loginformdata = six.moves.urllib.parse.parse_qs(response.url)
+					loginformdata = {k:v[0] for k,v in loginformdata.items()}
+					loginformdata['version'] = loginformdata.pop('https://member.cht.com.tw/HiReg/checkcookieservlet?version',1.0)
+					loginformdata['uid'] = loginidpw[0]
+					loginformdata['pw'] = loginidpw[1]
+					reqheaders_chthnlogin = self.merge_two_dicts(reqheaders_hamilogin, {
+						'Host': "member.cht.com.tw",
+						'Origin': 'https://member.cht.com.tw',
+						'Referer': response.url,
+					})
+					session.headers.update(reqheaders_chthnlogin)
+					chthn_loginUrl = 'https://member.cht.com.tw/HiReg/multiauthentication'
+					setcookies = session.cookies.get_dict()
+					response = session.post(chthn_loginUrl, params=loginformdata, cookies=setcookies)
+					setcookies = self.merge_two_dicts(session.cookies.get_dict(), response.cookies.get_dict())
+					session.headers.update(reqheaders_hamilogin)
+					#pass #print("no duplicated hamivideo login")
+					if (re.search("kick.do",response.text)!=None):
+						#print('duplicated hamivideo login, kicking')
+						setcookies = kick_hami_alreadylogin(response,session)
+
+			self.gset_hamilogin_inf(mode='w',data=setcookies)
+			# retroplay: https://hamivideo.hinet.net/api/play.do?id=OTT_TS_0000001744_2023100202300020231002043000&freeProduct=0&llsetting=false&_=1696218765840
+			# ***REMOVED***
+
+			response = session.get(channelapiurl, cookies=setcookies)
+			responsejson = self.parse_json_response(response.text)
+
 		if ret_session==True:
 			return {'session':session, 'cookie': setcookies, 'responsejson': responsejson}
 		elif 'url' in responsejson:
@@ -721,7 +752,7 @@ class Hamivideo(object):
 		maplestage_singledrama_scripts = [x.text.strip() for x in maplestage_singledrama_scripts if x.text!=None and re.search("(soyou|yandisk|m3u8)", x.text)!=None]
 		maplestage_singledrama_scripts = [x for x in maplestage_singledrama_scripts if re.search("push", x)!=None]
 		maplestage_singledrama_scripts = maplestage_singledrama_scripts[0]
-		video_refer_argums = re.findall("push\(\'(.+)\'\)", maplestage_singledrama_scripts)
+		video_refer_argums = re.findall(r"push\(\'(.+)\'\)", maplestage_singledrama_scripts)
 		video_refer_argums = set(video_refer_argums)
 		video_refer_argums = six.moves.filter(lambda x: len(x)>10, video_refer_argums)
 		video_refer_argums = map(lambda x: 'https://video.8maple.ru/yandisk/?url='+x if re.search('http',x)==None else x, video_refer_argums)
@@ -741,11 +772,11 @@ class Hamivideo(object):
 		maplestagestreamingurl = [x.text.strip() for x in maplestagestreamingurl if x.text!=None and re.search("(eval)", x.text)!=None]
 		maplestagestreamingurl = maplestagestreamingurl[0]
 		maplestagestreamingurl = jsbeautifier.beautify(maplestagestreamingurl)
-		maplestagestreamingurl = re.findall("\(([\w\d\,]{15,})\)", maplestagestreamingurl)[0]
+		maplestagestreamingurl = re.findall(r"\(([\w\d\,]{15,})\)", maplestagestreamingurl)[0]
 		maplestagestreamingurl = maplestagestreamingurl.split(",")
 		maplestagestreamingurl = map(int, maplestagestreamingurl)
 		maplestagestreamingurl = ''.join(map(unichr, maplestagestreamingurl))
-		maplestagestreamingurl = re.findall("file\:\'\/\/[\w\d\-\.\/\%\?\=\&\:]+",maplestagestreamingurl)[0]
+		maplestagestreamingurl = re.findall(r"file\:\'\/\/[\w\d\-\.\/\%\?\=\&\:]+",maplestagestreamingurl)[0]
 		maplestagestreamingurl = maplestagestreamingurl.replace("file:'", 'https:')
 		session.headers.update(self.merge_two_dicts(reqheaders_maplestage, {
 			'Referer': video_refer_argum,
@@ -759,42 +790,48 @@ class Hamivideo(object):
 
 	def ptspluslogin(self, ptsplusloginidpw=None):
 		if ptsplusloginidpw==None:
-			loginid = self.ptsplusloginidpw[0]
-			loginpw = self.ptsplusloginidpw[1]
+			loginid = self.settings['ptsplusloginidpw'][0]
+			loginpw = self.settings['ptsplusloginidpw'][1]
 		else:
 			loginid = ptsplusloginidpw[0]
 			loginpw = ptsplusloginidpw[1]
 		if self.ptsplus_loginres==None:
 			from requests.auth import HTTPBasicAuth
-			loginurl = 'https://www.ptsplus.tv/api/login'
+			loginurl = 'https://www.ptsplus.tv/api/v1/login' #https://www.ptsplus.tv/api/login'
 			loginpayload = {
-				"username":loginid,
-				"password":loginpw,
-				"loginType":1,
-				"authorization":"MTE2MjBjYjgtOTczYy00ZDY5LTg0YmItYmE0ZjcxZDAyNDYwOkZoVlhVdTl4Zmp4NmR3TlVNd0Fw"
+					# "username":loginid,
+					# "loginType":1,
+					# "authorization":"MTE2MjBjYjgtOTczYy00ZDY5LTg0YmItYmE0ZjcxZDAyNDYwOkZoVlhVdTl4Zmp4NmR3TlVNd0Fw"
+					"account":loginid,
+					"password":loginpw,
+					"checksum": self.settings['ptsplusloginchecksum']
 				}
 			login_req_header = {
 				'accept': 'application/json, text/plain, */*',
-				'accept-encoding': 'gzip, deflate, br',
-				'accept-language': 'zh-TW,zh;q=0.9',
-				'asiaplay-device-model': 'Windows/NT 10.0/Chrome/94.0.4606.71',
-				'asiaplay-device-type': 'WEB_PC',
-				'asiaplay-device-version': '1.0.0.218',
+				# 'accept-encoding': 'gzip, deflate, br',
+				# 'accept-language': 'zh-TW,zh;q=0.9',
+				# 'asiaplay-device-model': 'Windows/NT 10.0/Chrome/94.0.4606.71',
+				# 'asiaplay-device-type': 'WEB_PC',
+				# 'asiaplay-device-version': '1.0.0.218',
 				'content-type': 'application/json',
-				'dnt': '1',
+				# 'dnt': '1',
 				'origin': 'https://www.ptsplus.tv',
-				'referer': 'https://www.ptsplus.tv/login',
-				'sec-ch-ua': '"Chromium";v="94", "Google Chrome";v="94", ";Not A Brand";v="99"',
-				'sec-ch-ua-mobile': '?0',
-				'sec-ch-ua-platform': "Windows",
-				'sec-fetch-dest': 'empty',
-				'sec-fetch-mode': 'cors',
-				'sec-fetch-site': 'same-origin',
+				# 'referer': 'https://www.ptsplus.tv/zh/login',
+				# 'sec-ch-ua': '"Chromium";v="94", "Google Chrome";v="94", ";Not A Brand";v="99"',
+				# 'sec-ch-ua-mobile': '?0',
+				# 'sec-ch-ua-platform': "Windows",
+				# 'sec-fetch-dest': 'empty',
+				# 'sec-fetch-mode': 'cors',
+				# 'sec-fetch-site': 'same-origin',
 				'user-agent': self.useragent,
+				'x-api-key': self.settings['ptsplusloginxapikey'],	
 				}
-			reqauthidpw = ('11620cb8-973c-4d69-84bb-ba4f71d02460','FhVXUu9xfjx6dwNUMwAp')
-			loginres = self.requesturl_post_ret(loginurl, json=loginpayload, headers=login_req_header, auth=HTTPBasicAuth(reqauthidpw[0], reqauthidpw[1]))
+			# print(f'loginpayload is {loginpayload} login_req_header is {login_req_header}')
+			# reqauthidpw = ('11620cb8-973c-4d69-84bb-ba4f71d02460','FhVXUu9xfjx6dwNUMwAp')
+			# loginres = self.requesturl_post_ret(loginurl, json=loginpayload, headers=login_req_header, auth=HTTPBasicAuth(reqauthidpw[0], reqauthidpw[1]))
+			loginres = self.requesturl_post_ret(loginurl, json=loginpayload, headers=login_req_header)
 			loginres = self.parse_json_response(loginres)
+			# print(f'loginres is {loginres}')
 			auth_after_login = {
 				'Authorization':'Bearer '+loginres['accessToken']
 			}
@@ -807,10 +844,15 @@ class Hamivideo(object):
 
 	def ret_ptsplus_main_menu_catgs(self,loginidpw=None):
 		self.ptspluslogin(ptsplusloginidpw=loginidpw)
-		ptscatgsurl = 'https://prod-api.ptsplus.tv/program/channel?offset=0&limit=0'
-		catgs = self.requesturl_get_ret(ptscatgsurl,headers=self.ptsplus_reqheader_after_login)
-		catgs = self.parse_json_response(catgs)['data']
-		return catgs
+		# ptscatgsurl = 'https://prod-api.ptsplus.tv/program/channel?offset=0&limit=0'
+		# catgs = self.requesturl_get_ret(ptscatgsurl,headers=self.ptsplus_reqheader_after_login)
+		# catgs = self.parse_json_response(catgs)['data']
+		catgsurl = self.requesturl_get_ret('https://www.ptsplus.tv/zh',headers=self.ptsplus_reqheader_after_login)
+		catgsurl = re.search(r'<script src="([a-zA-Z\/\_\d-]+?app-.+?\.js){1}".+?</script>',catgsurl).group(1)
+		catgsurl = 'https://www.ptsplus.tv'+catgsurl
+		catgs = self.requesturl_get_ret(catgsurl,headers=self.ptsplus_reqheader_after_login)
+		# print(f'catgs is {catgs}')
+		return catgsurl
 
 	def ret_ptsplus_programs_under_a_subcatg(self,genre=1,subgenre=1,limit=20,loginidpw=None):
 		self.ptspluslogin(ptsplusloginidpw=loginidpw)
@@ -846,7 +888,7 @@ class Hamivideo(object):
 		return episodeslist
 
 	def ret_ptsplus_youtube_video_url(self, youtube_video_id):
-		ytApikey_ptsplus = self.youtube_api_key
+		ytApikey_ptsplus = self.settings['youtube_api_key']
 		if ytApikey_ptsplus is not None and ytApikey_ptsplus!="":
 			youtubeApiUrl = f"https://www.youtube.com/youtubei/v1/player?key={ytApikey_ptsplus}&prettyPrint=false"
 			req_json_data = {
@@ -937,7 +979,7 @@ class Hamivideo(object):
 			return target_catgsnavs
 
 	def ret_linetv_dramas_of_a_catg(self, catgurl=1):
-		researchres = re.search('channel/(\d+)/genre/(\d+)',catgurl)
+		researchres = re.search(r'channel/(\d+)/genre/(\d+)',catgurl)
 		#linetv_catg = self.ret_linetv_main_menu_catgs()
 		#dataurl_for_drama_in_a_category = 'https://www.linetv.tw/drama?area={}'
 		#linetv_json_drama_data_url = catgurl.replace('https://www.linetv.tw/channel/','https://api.linetv.tw/search/v1/contents/channel/')
@@ -1199,9 +1241,9 @@ class Hamivideo(object):
 			self.driver = webdriver.Remote(command_executor='http://'+self.binary_and_driver_path['docker_remote_selenium_addr']+'/wd/hub', desired_capabilities=merged_desired_capabilities)
 		elif self.binary_and_driver_path['browser_type']=='chrome':
 			self.chromeoptions.binary_location = self.binary_and_driver_path['chromebinary_location']
-			self.driver = webdriver.Chrome(executable_path=self.binary_and_driver_path['chromedriver_path'], options=chromeoptions, desired_capabilities=merged_chrome_desired_capabilities, service_log_path=self.seleniumlogpath)
+			self.driver = webdriver.Chrome(executable_path=self.binary_and_driver_path['chromedriver_path'], options=chromeoptions, desired_capabilities=merged_chrome_desired_capabilities, service_log_path=self.settings['seleniumlogpath'])
 		elif self.binary_and_driver_path['browser_type']=='firefox':
-			self.driver = webdriver.Firefox(executable_path=self.binary_and_driver_path['geckodriver_path'], firefox_binary=self.binary_and_driver_path['firefoxbinary_location'], firefox_profile=self.firefoxprofile, firefox_options=firefoxoptions, desired_capabilities=self.caps_ff, log_path=self.seleniumlogpath)
+			self.driver = webdriver.Firefox(executable_path=self.binary_and_driver_path['geckodriver_path'], firefox_binary=self.binary_and_driver_path['firefoxbinary_location'], firefox_profile=self.firefoxprofile, firefox_options=firefoxoptions, desired_capabilities=self.caps_ff, log_path=self.settings['seleniumlogpath'])
 		if False and (self.binary_and_driver_path['browser_type']=='chrome' and os.path.exists(self.binary_and_driver_path['chromeublockpath'])):
 			self.driver.get('chrome://extensions')
 			time.sleep(1)

@@ -13,8 +13,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: en_GB\n"
+"Language: en_gb\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
 
 msgctxt "Addon Summary"
 msgid "Hamivideo"
@@ -107,6 +108,14 @@ msgstr ""
 
 msgctxt "#30103"
 msgid "Youtube API Key"
+msgstr ""
+
+msgctxt "#30104"
+msgid "PTS plus login checksum"
+msgstr ""
+
+msgctxt "#30105"
+msgid "PTS plus login X-Api-key"
 msgstr ""
 
 msgctxt "#30110"
