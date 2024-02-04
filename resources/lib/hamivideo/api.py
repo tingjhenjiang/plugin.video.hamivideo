@@ -709,7 +709,7 @@ class Hamivideo(object):
 			return self.ret_hami_streaming_url_by_req(channel_id, loginidpw=loginidpw, ret_session=ret_session, currentRecursionDepth=currentRecursionDepth+1, allowedRecursionDepth=allowedRecursionDepth)
 		else:
 			errorMessage = 'error in ret_hami_streaming_url_by_req for channel_id={}, ret_session={}, responsejson={}, currentRecursionDepth={}, allowedRecursionDepth={}'.format(
-				channel_id,ret_session,responsejson,currentRecursionDepth,allowedRecursionDepth
+				channel_id,ret_session,json.dumps(responsejson),currentRecursionDepth,allowedRecursionDepth
 			)
 			raise BaseException(errorMessage)
 
