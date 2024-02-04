@@ -589,7 +589,7 @@ class Hamivideo(object):
 		with open(self.settings['hamilogin_cookieinf']['filename'], mode, newline='') as jsonfile:
 			if mode=='w':
 				json.dump(data, jsonfile) #settings['hamilogin_cookieinf']['cookieinf']
-				# print(f"write logging info complete")
+				# print("write logging info to {} complete".format(self.settings['hamilogin_cookieinf']['filename']))
 				return True
 			else:
 				data = json.load(jsonfile)
@@ -695,7 +695,6 @@ class Hamivideo(object):
 
 			self.gset_hamilogin_inf(mode='w',data=setcookies)
 			# retroplay: https://hamivideo.hinet.net/api/play.do?id=OTT_TS_0000001744_2023100202300020231002043000&freeProduct=0&llsetting=false&_=1696218765840
-			# ***REMOVED***
 
 			response = session.get(channelapiurl, cookies=setcookies)
 			responsejson = self.parse_json_response(response.text)
