@@ -1,5 +1,6 @@
 ﻿import requests
 import htmlement
+import time
 import sys
 import xml.etree.ElementTree as elemtree
 import json
@@ -595,7 +596,7 @@ class Hamivideo(object):
 				# print(f"load logging info complete")
 				return data
 
-	def ret_hami_streaming_url_by_req(self, channel_id, loginidpw=None, ret_session=False, currentRecursionDepth=0, allowedRecursionDepth=10):
+	def ret_hami_streaming_url_by_req(self, channel_id, loginidpw=None, ret_session=False, currentRecursionDepth=0, allowedRecursionDepth=1):
 		channelapiurl = 'https://hamivideo.hinet.net/api/play.do?id='+channel_id
 		loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
 		reqheaders_std = {
@@ -711,7 +712,8 @@ class Hamivideo(object):
 			errorMessage = 'error in ret_hami_streaming_url_by_req for channel_id={}, ret_session={}, responsejson={}, currentRecursionDepth={}, allowedRecursionDepth={}'.format(
 				channel_id,ret_session,json.dumps(responsejson),currentRecursionDepth,allowedRecursionDepth
 			)
-			raise BaseException(errorMessage)
+			# raise BaseException(errorMessage)
+			return errorMessage
 
 	def ret_maplestage_streamingurl_by_req(self, singleepisodeurl):
 		maple_homepage = 'https://8maple.ru/'
@@ -1597,7 +1599,7 @@ if __name__ == '__main__':
 		elif type=='ptsplus_video':
 			loginpw = (args.ptsloginid, args.ptsloginpw)
 			streamingurl = hamic.ret_ptsplus_video_streaming_url(cchurl,loginidpw=loginpw)
-		if re.search('(timed out|timeout|unknown error|connection refused)', streamingurl)!=None:
+		if re.search('(timed out|timeout|unknown error|connection refused|error in ret_hami_streaming_url_by_req)', streamingurl)!=None:
 			pass
 		else:
 			print(streamingurl)
