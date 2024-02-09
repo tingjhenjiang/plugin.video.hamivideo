@@ -15,11 +15,6 @@ except:
 #import web_pdb
 
 socket.setdefaulttimeout(180)
-plugin = Plugin()
-addon = xbmcaddon.Addon()
-addonname = addon.getAddonInfo('name')
-addonid = xbmcaddon.Addon().getAddonInfo('id')
-plugin_storagepath = plugin.storage_path
 fakemediaurl_suffix = 'index.m3u8'
 try:
 	import multiprocessing
@@ -28,7 +23,11 @@ except:
 	workers = 4
 #project https://www.9900.com.tw/B003.htm
 #project https://www.gdaily.org/22554/2020-watch-video
-
+plugin = Plugin()
+addon = xbmcaddon.Addon()
+addonname = addon.getAddonInfo('name')
+addonid = xbmcaddon.Addon().getAddonInfo('id')
+plugin_storagepath = plugin.storage_path
 settings = {
 	'chromedriver_path': plugin.get_setting('chromedriver_path',  six.text_type),
 	'chromebinary_location': plugin.get_setting('chromebinary_location',  six.text_type),
@@ -45,7 +44,6 @@ settings = {
 	'hamiloginidpw': (plugin.get_setting('hamiid', six.text_type),plugin.get_setting('hamipw', six.text_type)),
 	'youtube_api_key': plugin.get_setting('youtube_api_key', six.text_type)	
 }
-
 
 @plugin.route('/')
 def index():
@@ -191,7 +189,7 @@ def list_linetvchannels(churl="", type="parent"):
 					'inputstream.adaptive.license_type': 'com.widevine.alpha', #,  'com.microsoft.playready'
 					'inputstream.adaptive.manifest_type': 'hls',
 					'inputstream.adaptive.license_key': 'time='+str(round(time.time(),3)).replace('.','').ljust(13, '0')+'|'+reqheaders_strs+'||R', #str(int(time.time() ) )
-					#'inputstream.adaptive.stream_headers': reqheaders_strs,
+					# 'inputstream.adaptive.stream_headers': reqheaders_strs,
 				},
 				'is_playable': True,
 				#'setsubtitles': episodedatas[c]['subtitle_url']
@@ -203,39 +201,99 @@ def list_linetvchannels(churl="", type="parent"):
 def list_ptspluschannels(churl="", type="parent"):
 	hamic = Hamivideo(**settings)
 	if type=="parent":
-		channels = hamic.ret_ptsplus_main_menu_catgs()
+		channels = hamic.ret_ptsplus_menu_catgs(mode='maincatg')
 		channels = [{
 			'label': v['genreName'],
-			'path': plugin.url_for('list_ptspluschannels', churl=v['genreId'], type='listprograms'),
+			'path': plugin.url_for('list_ptspluschannels', churl=v['genreId'], type='listtopics'),
 			'icon': '',
 			'thumbnail': '',
 			'is_playable': False,
 		} for v in channels]
-	if type=="listprograms":
-		channels = hamic.ret_ptsplus_programs_under_a_catg(churl)
+	if type=="listtopics":
+		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_guide', queryStr=churl)
 		plugin.log.info('genreId is: '+churl)
 		channels = [{
-			'label': v['titleLocal'],
+			'label': v['marketingLabel']['name'],
 			'label2': '',
-			'path': plugin.url_for('list_ptspluschannels', churl=v['seasonId'], type='listeps'),
-			'info': {'plot': v['synopsisLocal']},
-			'thumbnail': v['artWorkImagesDict']['Season_KeyVisual'],
-			'icon': v['artWorkImagesDict']['Season_Post'],
+			'path': plugin.url_for('list_ptspluschannels', churl=v['marketingLabel']['id'], type='listprograms'),
+			'info': {},
+			'thumbnail': v['marketingLabel']['cover'],
+			'icon': v['marketingLabel']['cover'],
+			'is_playable': False,
+		} for v in channels]
+	if type=="listprograms":
+		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_videomarketinglabel', queryStr=churl)
+		plugin.log.info('genreId is: '+churl)
+		# print("program is {}".format(channels[0]) )
+		channels = [{
+			'label': "{} {}".format(v['program']['name'], v['program']['wholeseasons']),
+			'label2': '',
+			'path': plugin.url_for('list_ptspluschannels', churl=v['program']['id'], type='listeps'),
+			'info': {'plot': v['program']['introduction']},
+			'thumbnail': v['program']['latestCover'],
+			'icon': v['program']['latestCover'],
 			'is_playable': False,
 		} for v in channels]
 	if type=="listeps":
-		plugin.log.info('seasonId is: '+churl)
-		channels = hamic.ret_ptsplus_episodes_under_a_program(churl)
+		plugin.log.info('programId is: '+churl)
+		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_programdetail', queryStr=churl)#hamic.ret_ptsplus_episodes_under_a_program(churl)
 		channels = [{
-			'label': '第'+'{0:03d}'.format(v['episodeNumber'])+'集',
+			'label': "{} 第 {:03d} 集 {}  ({})".format( v['season_name'], v['number'], v['name'], v['season_releaseYear']),
 			'label2': '',
-			'path': v['m3u8url'],
-			'info': {'plot': v['synopsisLocal']},
-			'thumbnail': v['artWorkImagesDict']['Episode_KeyVisual'],
-			'icon': v['artWorkImagesDict']['Episode_Post'],
-			'is_playable': True,
+			'path': plugin.url_for('list_ptspluschannels', churl=v['id'], type='retrieveStream'),
+			# 'path': plugin.url_for('playchannel', churl=v['id'], type='ptsplus'),
+			'info': {'plot': v['introduction'],'year':v['season_releaseYear']},
+			'thumbnail': v['cover'],
+			'icon': v['cover'],
+			'is_playable': False,
 		} for v in channels]
-		channels = sorted(channels, key=lambda k: k['label']) 
+		channels = sorted(channels, key=lambda k: k['label'])
+	if type=="retrieveStream":
+		plugin.log.info('episodeId is: '+churl)
+		videodata = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_episode', queryStr=churl)
+		print(f"videodata is {videodata}")
+		setcookie = videodata['cookie']
+		import six.moves.urllib.parse
+		host = six.moves.urllib.parse.urlparse(videodata['video']['stream']).netloc
+		subtitleurl = None #videodata['video']['subtitles']
+		# urlparameters_dict = six.moves.urllib.parse.parse_qs(videodata['video']['urlPrefixSignature'])
+		urlparameters_dict = dict(six.moves.urllib.parse.parse_qsl(videodata['video']['urlPrefixSignature']))
+		# urlparameters_dict = {'paramname':'value','paramname2':'value2'}
+		# urlparameters_dict['URLPrefix'] = str(1000) #str(urlparameters_dict['Expires'])
+		# del urlparameters_dict['URLPrefix']
+		urlparameters_dict_merged = "&".join(f"{k}={v}" for k,v in urlparameters_dict.items())
+		# urlparameters_dict_merged = six.moves.urllib.parse.quote(videodata['video']['urlPrefixSignature'])
+		# urlparameters_dict_merged = "&".join([f"{e[0]}={e[1]}" for e in urlparameters_dict])
+		print(f"urlparameters_dict is {urlparameters_dict_merged}")
+		streamingurl = videodata['video']['stream']
+		streamingurl += 'hls.m3u8' #'hls_1080p/index.m3u8'
+		streamingurl = streamingurl#+"|Authority=prod-cdn.ptsplus.tv&Referer=https://www.ptsplus.tv&Origin=https://www.ptsplus.tv&User-Agent={useragent}".format(useragent=hamic.useragent)
+		reqheaders_strs = """
+			Authority={host}&Host={host}&Referer=https://www.ptsplus.tv&Origin=https://www.ptsplus.tv&User-Agent={useragent}
+			""".format(host=host,setcookie=setcookie,useragent=hamic.useragent).strip()
+		# print(f"url parameter={urlparameters_dict_merged} and reqheaders_strs={reqheaders_strs}")
+		# &content-type=application/vnd.apple.mpegurl
+		# &accept=*/*&accept-language=zh-TW,zh;q=0.9&dht=1&sec-ch-ua="Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"&sec-ch-ua-mobile=?0&sec-ch-ua-platform="Windows"&sec-fetch-dest=empty&sec-fetch-mode=cors&sec-fetch-site=same-site&
+		channels = [{
+			'label': "play{}".format( "" ),
+			'label2': '',
+			'path': streamingurl,
+			'info': {},
+			'thumbnail': None,
+			'icon': None,
+			'properties': {
+				'inputstream': 'inputstream.adaptive',
+				# 'inputstream.adaptive.license_type': 'com.widevine.alpha',
+				'inputstream.adaptive.manifest_type': 'hls',
+				# 'inputstream.adaptive.license_key': 'time='+str(round(time.time(),3)).replace('.','').ljust(13, '0')+'|'+reqheaders_strs+'||R', #str(int(time.time() ) )
+				'inputstream.adaptive.stream_headers': reqheaders_strs,
+				'inputstream.adaptive.manifest_headers': reqheaders_strs,
+				# 'inputstream.adaptive.manifest_upd_params': '?'+videodata['video']['urlPrefixSignature'],
+				'inputstream.adaptive.manifest_params': urlparameters_dict_merged, #videodata['video']['urlPrefixSignature'], 
+				'inputstream.adaptive.stream_params': urlparameters_dict_merged, #videodata['video']['urlPrefixSignature'], 
+			},
+			'is_playable': True,
+		}]
 	return plugin.finish(channels)
 
 #https://ewcdn14.nowe.com/session/p8-5-f9faefbc85c-318d3fad569f91c/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=64115504543cf37b453522b15e9d1f54_1590492587
@@ -521,11 +579,17 @@ def playchannel(churl, type="hami"):
 	if type=='dramaq':
 		streamingurl = hamic.ret_dramaq_streaming_url_by_req(cchurl)
 		subtitleurl = None
+	elif type=='ptsplus':
+		videodata = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_episode', queryStr=churl)
+		subtitleurl = None #videodata['video']['subtitles']
+		streamingurl = videodata['video']['stream']+'hls.m3u8?'
+		streamingurl = streamingurl+videodata['video']['urlPrefixSignature']
+		streamingurl = streamingurl#+"|Authority=prod-cdn.ptsplus.tv&Referer=https://www.ptsplus.tv&Origin=https://www.ptsplus.tv&User-Agent={useragent}".format(useragent=hamic.useragent)
 	elif type=='hami':
 		channelid = os.path.basename(cchurl).replace('.do','')
 		streamingurl = hamic.ret_hami_streaming_url_by_req(channelid)
 		# streamingurl = hamic.get_hami_better_q_streamingsrc(streamingurl)
-		streamingurl = streamingurl+"|User-Agent={useragent}&Referer=https://hamivideo.hinet.net&Origin=https://hamivideo.hinet.net".format(useragent=hamic.useragent)
+		streamingurl = streamingurl+"|Referer=https://hamivideo.hinet.net&Origin=https://hamivideo.hinet.net&User-Agent={useragent}".format(useragent=hamic.useragent)
 		# Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36
 		subtitleurl = None
 	#elif type=='linetv':
@@ -566,114 +630,111 @@ def playchannel(churl, type="hami"):
 	plugin.log.info('result of parsing is: '+streamingurl)
 	plugin.set_resolved_url(streamingurl, subtitles=subtitleurl)
 
-
-
 # Suggested view codes for each type from different skins (initial list thanks to xbmcswift2 library)
 ALL_VIEW_CODES = {
-    'list': {
-        'skin.confluence': 50,  # List
-        'skin.aeon.nox': 50,  # List
-        'skin.droid': 50,  # List
-        'skin.quartz': 50,  # List
-        'skin.re-touched': 50,  # List
-        'skin.estuary': 50,
-        # 50 = List, 51 = Poster, 52 = Lists,53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
-    },
-    'thumbnail': {
-        'skin.confluence': 501,  # Thumbnail
-        'skin.aeon.nox': 500,  # Wall
-        'skin.droid': 51,  # Big icons
-        'skin.quartz': 51,  # Big icons
-        'skin.re-touched': 500,  # Thumbnail
-        'skin.estuary': 500,
-        # 50 = List, 51 = Poster, 52 = Lists, 53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
-    },
-    'movies': {
-        'skin.confluence': 500,  # Thumbnail 515, # Media Info 3
-        'skin.aeon.nox': 500,  # Wall
-        'skin.droid': 51,  # Big icons
-        'skin.quartz': 52,  # Media info
-        'skin.re-touched': 500,  # Thumbnail
-        'skin.estuary': 52,
-        # 50 = List, 51 = Poster,52 = Lists,53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
-    },
-    'tvshows': {
-        'skin.confluence': 500,  # Thumbnail 515, # Media Info 3
-        'skin.aeon.nox': 500,  # Wall
-        'skin.droid': 51,  # Big icons
-        'skin.quartz': 52,  # Media info
-        'skin.re-touched': 500,  # Thumbnail
-        'skin.estuary': 54,
-        # 50 = List, 51 = Poster,52 = Lists, 53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
-    },
-    'seasons': {
-        'skin.confluence': 50,  # List
-        'skin.aeon.nox': 50,  # List
-        'skin.droid': 50,  # List
-        'skin.quartz': 52,  # Media info
-        'skin.re-touched': 50,  # List
-        'skin.estuary': 53,
-        # 50 = List, 51 = Poster,52 = Lists, 53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
-    },
-    'episodes': {
-        'skin.confluence': 500,  # Media Info
-        'skin.aeon.nox': 518,  # Infopanel
-        'skin.droid': 50,  # List
-        'skin.quartz': 52,  # Media info
-        'skin.re-touched': 550,  # Wide
-        'skin.estuary': 55.
-        # 50 = List, 51 = Poster,52 = Lists,53 = Shift,54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
-    },
-    'sets': {
-        'skin.confluence': 500,  # List
-        'skin.aeon.nox': 50,  # List
-        'skin.droid': 50,  # List
-        'skin.quartz': 50,  # List
-        'skin.re-touched': 50,  # List
-        'skin.estuary': 55,
-        # 50 = List, 51 = Poster,52 = Lists,53 = Shift,54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
-    },
+	'list': {
+		'skin.confluence': 50,  # List
+		'skin.aeon.nox': 50,  # List
+		'skin.droid': 50,  # List
+		'skin.quartz': 50,  # List
+		'skin.re-touched': 50,  # List
+		'skin.estuary': 50,
+		# 50 = List, 51 = Poster, 52 = Lists,53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
+	},
+	'thumbnail': {
+		'skin.confluence': 501,  # Thumbnail
+		'skin.aeon.nox': 500,  # Wall
+		'skin.droid': 51,  # Big icons
+		'skin.quartz': 51,  # Big icons
+		'skin.re-touched': 500,  # Thumbnail
+		'skin.estuary': 500,
+		# 50 = List, 51 = Poster, 52 = Lists, 53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
+	},
+	'movies': {
+		'skin.confluence': 500,  # Thumbnail 515, # Media Info 3
+		'skin.aeon.nox': 500,  # Wall
+		'skin.droid': 51,  # Big icons
+		'skin.quartz': 52,  # Media info
+		'skin.re-touched': 500,  # Thumbnail
+		'skin.estuary': 52,
+		# 50 = List, 51 = Poster,52 = Lists,53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
+	},
+	'tvshows': {
+		'skin.confluence': 500,  # Thumbnail 515, # Media Info 3
+		'skin.aeon.nox': 500,  # Wall
+		'skin.droid': 51,  # Big icons
+		'skin.quartz': 52,  # Media info
+		'skin.re-touched': 500,  # Thumbnail
+		'skin.estuary': 54,
+		# 50 = List, 51 = Poster,52 = Lists, 53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
+	},
+	'seasons': {
+		'skin.confluence': 50,  # List
+		'skin.aeon.nox': 50,  # List
+		'skin.droid': 50,  # List
+		'skin.quartz': 52,  # Media info
+		'skin.re-touched': 50,  # List
+		'skin.estuary': 53,
+		# 50 = List, 51 = Poster,52 = Lists, 53 = Shift, 54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
+	},
+	'episodes': {
+		'skin.confluence': 500,  # Media Info
+		'skin.aeon.nox': 518,  # Infopanel
+		'skin.droid': 50,  # List
+		'skin.quartz': 52,  # Media info
+		'skin.re-touched': 550,  # Wide
+		'skin.estuary': 55.
+		# 50 = List, 51 = Poster,52 = Lists,53 = Shift,54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
+	},
+	'sets': {
+		'skin.confluence': 500,  # List
+		'skin.aeon.nox': 50,  # List
+		'skin.droid': 50,  # List
+		'skin.quartz': 50,  # List
+		'skin.re-touched': 50,  # List
+		'skin.estuary': 55,
+		# 50 = List, 51 = Poster,52 = Lists,53 = Shift,54 = InfoWall  55 = Wide list, 500 = Wall,501= List, 502 = Fanart
+	},
 }
 
 
 def set_view(view_mode, view_code=0):
-    if get_setting('auto-view') == 'true':
+	if get_setting('auto-view') == 'true':
 
-        # Set the content for extended library views if needed
-        xbmcplugin.setContent(int(sys.argv[1]), view_mode)
-        if view_mode == MOVIES:
-            xbmcplugin.setContent(int(sys.argv[1]), "movies")
-        elif view_mode == TV_SHOWS:
-            xbmcplugin.setContent(int(sys.argv[1]), "tvshows")
-        elif view_mode == SEASONS:
-            xbmcplugin.setContent(int(sys.argv[1]), "seasons")
-        elif view_mode == EPISODES:
-            xbmcplugin.setContent(int(sys.argv[1]), "episodes")
-        elif view_mode == THUMBNAIL:
-            xbmcplugin.setContent(int(sys.argv[1]), "thumbnail")
-        elif view_mode == LIST:
-            xbmcplugin.setContent(int(sys.argv[1]), "list")
-        elif view_mode == SETS:
-            xbmcplugin.setContent(int(sys.argv[1]), "sets")
+		# Set the content for extended library views if needed
+		xbmcplugin.setContent(int(sys.argv[1]), view_mode)
+		if view_mode == MOVIES:
+			xbmcplugin.setContent(int(sys.argv[1]), "movies")
+		elif view_mode == TV_SHOWS:
+			xbmcplugin.setContent(int(sys.argv[1]), "tvshows")
+		elif view_mode == SEASONS:
+			xbmcplugin.setContent(int(sys.argv[1]), "seasons")
+		elif view_mode == EPISODES:
+			xbmcplugin.setContent(int(sys.argv[1]), "episodes")
+		elif view_mode == THUMBNAIL:
+			xbmcplugin.setContent(int(sys.argv[1]), "thumbnail")
+		elif view_mode == LIST:
+			xbmcplugin.setContent(int(sys.argv[1]), "list")
+		elif view_mode == SETS:
+			xbmcplugin.setContent(int(sys.argv[1]), "sets")
 
-        skin_name = xbmc.getSkinDir()  # Reads skin name
-        try:
-            if view_code == 0:
-                view_codes = ALL_VIEW_CODES.get(view_mode)
-                # kodi.log(view_codes)
-                view_code = view_codes.get(skin_name)
-                # kodi.log(view_code)
-                xbmc.executebuiltin("Container.SetViewMode(" + str(view_code) + ")")
-            # kodi.log("Setting First view code "+str(view_code)+" for view mode "+str(view_mode)+" and skin "+skin_name)
-            else:
-                xbmc.executebuiltin("Container.SetViewMode(" + str(view_code) + ")")
-            # kodi.log("Setting Second view code for view mode "+str(view_mode)+" and skin "+skin_name)
-        except:
-            # kodi.log("Unable to find view code "+str(view_code)+" for view mode "+str(view_mode)+" and skin "+skin_name)
-            pass
-        # else:
-        # 	xbmc.executebuiltin("Container.SetViewMode(sets)")
-
+		skin_name = xbmc.getSkinDir()  # Reads skin name
+		try:
+			if view_code == 0:
+				view_codes = ALL_VIEW_CODES.get(view_mode)
+				# kodi.log(view_codes)
+				view_code = view_codes.get(skin_name)
+				# kodi.log(view_code)
+				xbmc.executebuiltin("Container.SetViewMode(" + str(view_code) + ")")
+			# kodi.log("Setting First view code "+str(view_code)+" for view mode "+str(view_mode)+" and skin "+skin_name)
+			else:
+				xbmc.executebuiltin("Container.SetViewMode(" + str(view_code) + ")")
+			# kodi.log("Setting Second view code for view mode "+str(view_mode)+" and skin "+skin_name)
+		except:
+			# kodi.log("Unable to find view code "+str(view_code)+" for view mode "+str(view_mode)+" and skin "+skin_name)
+			pass
+		# else:
+		# 	xbmc.executebuiltin("Container.SetViewMode(sets)")
 
 if __name__ == '__main__':
 	plugin.run()

@@ -57,18 +57,16 @@ class Hamivideo(object):
 		settings.setdefault('ptsplusloginidpw', (None,None))
 		settings.setdefault('ptsplusloginchecksum', None)
 		settings.setdefault('ptsplusloginxapikey', None)
+		settings.setdefault('ptspluslogin_cookieinf', {
+			'filename':Path(os.path.realpath(__file__)).parent / 'ptspluslogininf.txt',
+			'cookieinf':None
+			})
 		settings.setdefault('hamiloginidpw', (None,None))
 		settings.setdefault('youtube_api_key', None)
 		settings.setdefault('hamilogin_cookieinf', {
 			'filename':Path(os.path.realpath(__file__)).parent / 'hamilogininf.txt',
 			'cookieinf':None
 			})
-		with open(settings['hamilogin_cookieinf']['filename'], 'r', newline='') as jsonfile:
-			try:
-				tplogindata = json.load(jsonfile)
-				settings['hamilogin_cookieinf']['cookieinf'] = tplogindata
-			except json.JSONDecodeError as e:
-				settings['hamilogin_cookieinf']['cookieinf'] = {}
 		settings['ptsplusloginidpw'] = (settings['ptsplusloginidpw'][0],settings['ptsplusloginidpw'][1])
 		settings['hamivideo_host_url'] = 'https://hamivideo.hinet.net/'
 		self.settings = settings
@@ -585,8 +583,8 @@ class Hamivideo(object):
 	def ret_hami_epg(self, channel_id):
 		pass
 
-	def gset_hamilogin_inf(self, mode='r', data=None):
-		with open(self.settings['hamilogin_cookieinf']['filename'], mode, newline='') as jsonfile:
+	def gset_login_inf_fromtxt(self, src='hami', mode='r', data=None):
+		with open(self.settings[src+'login_cookieinf']['filename'], mode, newline='') as jsonfile:
 			if mode=='w':
 				json.dump(data, jsonfile) #settings['hamilogin_cookieinf']['cookieinf']
 				# print("write logging info to {} complete".format(self.settings['hamilogin_cookieinf']['filename']))
@@ -596,7 +594,16 @@ class Hamivideo(object):
 				# print(f"load logging info complete")
 				return data
 
+	def prepare_logininf(self, src='hami'):
+		try:
+			tplogindata = self.gset_login_inf_fromtxt(src=src, mode='r')
+			# tplogindata = json.loads(tplogindata)
+			self.settings[src+'login_cookieinf']['cookieinf'] = tplogindata
+		except json.JSONDecodeError as e:
+			self.settings[src+'login_cookieinf']['cookieinf'] = {}
+
 	def ret_hami_streaming_url_by_req(self, channel_id, loginidpw=None, ret_session=False, currentRecursionDepth=0, allowedRecursionDepth=1):
+		self.prepare_logininf(src='hami')
 		channelapiurl = 'https://hamivideo.hinet.net/api/play.do?id='+channel_id
 		loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
 		reqheaders_std = {
@@ -693,7 +700,7 @@ class Hamivideo(object):
 						#print('duplicated hamivideo login, kicking')
 						setcookies = kick_hami_alreadylogin(response,session)
 
-			self.gset_hamilogin_inf(mode='w',data=setcookies)
+			self.gset_login_inf_fromtxt(src='hami', mode='w', data=setcookies)
 			# retroplay: https://hamivideo.hinet.net/api/play.do?id=OTT_TS_0000001744_2023100202300020231002043000&freeProduct=0&llsetting=false&_=1696218765840
 
 			response = session.get(channelapiurl, cookies=setcookies)
@@ -790,12 +797,13 @@ class Hamivideo(object):
 		return (maplestagestreamingurl+"|"+craftedurlparameters)
 
 	def ptspluslogin(self, ptsplusloginidpw=None):
-		if ptsplusloginidpw==None:
-			loginid = self.settings['ptsplusloginidpw'][0]
-			loginpw = self.settings['ptsplusloginidpw'][1]
-		else:
+		# prepare_logininf gset_login_inf_fromtxt
+		if ptsplusloginidpw is not None:
 			loginid = ptsplusloginidpw[0]
 			loginpw = ptsplusloginidpw[1]
+		else:
+			loginid = self.settings['ptsplusloginidpw'][0]
+			loginpw = self.settings['ptsplusloginidpw'][1]
 		if self.ptsplus_loginres==None:
 			from requests.auth import HTTPBasicAuth
 			loginurl = 'https://www.ptsplus.tv/api/v1/login' #https://www.ptsplus.tv/api/login'
@@ -830,12 +838,15 @@ class Hamivideo(object):
 			# print(f'loginpayload is {loginpayload} login_req_header is {login_req_header}')
 			# reqauthidpw = ('11620cb8-973c-4d69-84bb-ba4f71d02460','FhVXUu9xfjx6dwNUMwAp')
 			# loginres = self.requesturl_post_ret(loginurl, json=loginpayload, headers=login_req_header, auth=HTTPBasicAuth(reqauthidpw[0], reqauthidpw[1]))
+			# print(f"loginurl {loginurl}, loginpayload {loginpayload}, login_req_header {login_req_header}")
 			loginres = self.requesturl_post_ret(loginurl, json=loginpayload, headers=login_req_header)
+			# print(f"loginres {loginres}")
 			loginres = self.parse_json_response(loginres)
 			# print(f'loginres is {loginres}')
 			auth_after_login = {
 				'Authorization':'Bearer '+loginres['accessToken']
 			}
+			self.gset_login_inf_fromtxt(src='ptsplus',mode='w',data=auth_after_login)
 			reqheader_after_login = self.merge_two_dicts(login_req_header,auth_after_login)
 			self.ptsplus_loginres = loginres
 			self.ptsplus_reqheader_after_login = reqheader_after_login
@@ -843,23 +854,173 @@ class Hamivideo(object):
 		else:
 			pass
 
-	def ret_ptsplus_main_menu_catgs(self,loginidpw=None):
-		self.ptspluslogin(ptsplusloginidpw=loginidpw)
+	def ret_ptsplus_graphql(self, mode='maincatg', queryStr='KIDS_AND_FAMILY'):
+		graphql_settings = {
+			'maincatg' : {
+				"親子家庭": "KIDS_AND_FAMILY",
+				"戲劇影集": "DRAMA",
+				"時事與紀錄片": "DOCUMENTARY",
+				"生活與藝術": "LIFESTYLE_AND_ART",
+				"直播": "Livestreams",
+			},
+			# 'ptsplus_graphql_guide' : """
+			# 	{
+			# 		"operationName":"Guides",
+			# 		"variables":{"type":"KIDS_AND_FAMILY"},
+			# 		"query": "query Guides($type: GuideTypeEnum!) { guides(type: $type) { id marketingLabel { id name introduction cover videos { id type episode { id name cover available __typename } program { ...ProgramSummary __typename } __typename } __typename } __typename }}fragment ProgramSummary on Program { id original useDRM episodeCount latestCover name introduction rating seasonCount type awards categories tags isFavorite __typename}"
+			# 	}
+			# """,
+			'ptsplus_graphql_guide' : """
+				{"operationName":"Guides","variables":{"type":"KIDS_AND_FAMILY"},"query": "query Guides($type: GuideTypeEnum!) { guides(type: $type) { id marketingLabel { id name introduction cover videos { id type episode { id name cover available __typename } program { ...ProgramSummary __typename } __typename } __typename } __typename }}fragment ProgramSummary on Program { id original useDRM episodeCount latestCover name introduction rating seasonCount type awards categories tags isFavorite __typename}"}
+			""",
+			'ptsplus_graphql_videomarketinglabel' : """
+				{
+					"operationName":"VideoMarketingLabel",
+					"variables":{"videoMarketingLabelId":"2f3eeba3-a4ee-4359-9f89-73fa7c204ace"},
+					"query": "query VideoMarketingLabel($videoMarketingLabelId: ID!) { videoMarketingLabel(id: $videoMarketingLabelId) { id cover introduction name subMarketingLabel { id name __typename } videos { id type program { ...ProgramSummary __typename } __typename } __typename }}fragment ProgramSummary on Program { id original useDRM episodeCount latestCover name introduction rating seasonCount type awards categories seasons { id bannerLOGO releaseMonth releaseYear canPurchase __typename } tags isFavorite __typename}"
+				}
+			""",
+			'ptsplus_graphql_programdetail' : """
+				{
+					"operationName": "ProgramDetail",
+					"variables": {
+						"programId": "94861b17-fe6a-4bc2-b3e9-a563b455c690"
+					},
+					"query": "query ProgramDetail($programId: ID!) {  program(id: $programId) {    id    original    useDRM    seasonCount    episodeCount    latestCover    seasons {      id      name      bannerLOGO      bannerCover      cover      releaseYear      releaseMonth      showEpisodeNumber      episodes {        id        number        name        introduction        cover        available        __typename      }      trailers {        id        index        name        introduction        cover        __typename      }      crews {        id        role        name        __typename      }      firstEpisodeIsFree      saleAt      introduction      price      watchedDays      canPurchase      __typename    }    rating    type    introduction    awards    name    categories    isFavorite    tags    inValidRegion    __typename  }}"
+				}
+			""",
+			'ptsplus_graphql_episode' : """
+				{
+					"operationName":"EpisodeData",
+					"variables":{"id":"cbcef1b9-de07-490e-b888-332bda733de6"},
+					"query": "query EpisodeData($id: ID!) { episode(id: $id) { id name cover available introduction video { id isDRM urlPrefixSignature subtitles { id name code __typename } stream __typename } season { id name program { id name useDRM __typename } __typename } __typename }}"
+				}
+			""",
+			'ptsplus_graphql_livestream' : """
+				[
+					{
+						"operationName": "Livestreams",
+						"variables": {
+							"limit": 30,
+							"offset": 0,
+							"sort": "LISTING_FROM_DESC",
+							"pinned": true
+						},
+						"query": "query Livestreams($limit: Int, $offset: Int, $searchTerm: String, $sort: LivestreamSortEnum!, $pinned: Boolean) {\n  livestreams(\n    limit: $limit\n    offset: $offset\n    searchTerm: $searchTerm\n    sort: $sort\n    pinned: $pinned\n  ) {\n    id\n    pageInfo {\n      ...PageInfo\n      __typename\n    }\n    records {\n      ...LivestreamFragment\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment PageInfo on PageInfo {\n  id\n  totalRecords\n  hasNext\n  totalPages\n  __typename\n}\n\nfragment LivestreamFragment on Livestream {\n  id\n  index\n  cover\n  name\n  source\n  __typename\n}"
+					},
+					{
+						"operationName": "LivestreamMarketingLabels",
+						"variables": {
+							"offset": 0,
+							"limit": 30
+						},
+						"query": "query LivestreamMarketingLabels($limit: Int, $offset: Int, $searchTerm: String) {\n  livestreamMarketingLabels(\n    limit: $limit\n    offset: $offset\n    searchTerm: $searchTerm\n  ) {\n    id\n    pageInfo {\n      ...PageInfo\n      __typename\n    }\n    records {\n      id\n      name\n      livestreams {\n        ...LivestreamFragment\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment PageInfo on PageInfo {\n  id\n  totalRecords\n  hasNext\n  totalPages\n  __typename\n}\n\nfragment LivestreamFragment on Livestream {\n  id\n  index\n  cover\n  name\n  source\n  __typename\n}"
+					}
+				]
+			"""
+		}
+		replace_patterns = {
+			'ptsplus_graphql_guide' : "KIDS_AND_FAMILY",
+			'ptsplus_graphql_videomarketinglabel' : "2f3eeba3-a4ee-4359-9f89-73fa7c204ace",
+			'ptsplus_graphql_programdetail' : "94861b17-fe6a-4bc2-b3e9-a563b455c690",
+			'ptsplus_graphql_episode' : "cbcef1b9-de07-490e-b888-332bda733de6",
+			'ptsplus_graphql_livestream' : ""
+		}
+		if mode in ['maincatg','ptsplus_graphql_livestream']:
+			return graphql_settings[mode]
+		else:
+			return graphql_settings[mode].replace(replace_patterns[mode],queryStr)
+
+	def ret_ptsplus_menu_catgs(self,mode='maincatg', queryStr='KIDS_AND_FAMILY', loginidpw=None):
+		ptsplus_req_apiurl = 'https://www.ptsplus.tv/graphql'
+		# self.settings[src+'login_cookieinf']['cookieinf']
+
+		# self.ptspluslogin(ptsplusloginidpw=loginidpw)
 		# ptscatgsurl = 'https://prod-api.ptsplus.tv/program/channel?offset=0&limit=0'
 		# catgs = self.requesturl_get_ret(ptscatgsurl,headers=self.ptsplus_reqheader_after_login)
 		# catgs = self.parse_json_response(catgs)['data']
-		catgsurl = self.requesturl_get_ret('https://www.ptsplus.tv/zh',headers=self.ptsplus_reqheader_after_login)
-		catgsurl = re.search(r'<script src="([a-zA-Z\/\_\d-]+?app-.+?\.js){1}".+?</script>',catgsurl).group(1)
-		catgsurl = 'https://www.ptsplus.tv'+catgsurl
-		catgs = self.requesturl_get_ret(catgsurl,headers=self.ptsplus_reqheader_after_login)
-		# print(f'catgs is {catgs}')
-		return catgsurl
+		# catgsurl = self.requesturl_get_ret('https://www.ptsplus.tv/zh',headers=self.ptsplus_reqheader_after_login)
+		# catgsurl = re.search(r'<script src="([a-zA-Z\/\_\d-]+?app-.+?\.js){1}".+?</script>',catgsurl).group(1)
+		# catgsurl = 'https://www.ptsplus.tv'+catgsurl
+		# catgs = self.requesturl_get_ret(catgsurl,headers=self.ptsplus_reqheader_after_login)
+		if mode=='maincatg':
+			catgs = [{'genreName':catg, 'genreId':element} for catg,element in self.ret_ptsplus_graphql(mode=mode).items()]
+			return catgs
+		if mode=='ptsplus_graphql_livestream':
+			return None
+		reqStr = self.ret_ptsplus_graphql(mode=mode, queryStr=queryStr).strip()
+		reqheaders_std = {
+			'Origin': 'https://www.ptsplus.tv',
+			'user-agent': self.useragent,# 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
+			'Sec-Fetch-Site': 'same-origin',
+			'Accept': '*/*; q=0.01',
+			'Accept-Encoding': 'gzip, deflate, br',
+			'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+			'Host': 'www.ptsplus.tv',
+			'DNT': '1',
+		}
+		reqheaders_ptspluslogin = self.merge_two_dicts(reqheaders_std, {
+			'Referer': "https://www.ptsplus.tv/",
+			'Sec-Fetch-Dest': 'empty',
+			'Sec-Fetch-Mode': 'cors',
+			'x-language': 'zh-TW',
+			'content-type': 'application/json',
+			'authority': 'www.ptsplus.tv',
+			# 'X-Requested-With': 'XMLHttpRequest',
+		})
+		self.prepare_logininf(src='ptsplus')
+		reqheaders_ptspluslogin = self.merge_two_dicts(reqheaders_ptspluslogin, self.settings['ptspluslogin_cookieinf']['cookieinf'])
+		session = requests.Session()
+		retryfetch = True
+		retry_n = 0
+		while retryfetch and retry_n<2:
+			if 'Authorization' not in reqheaders_ptspluslogin or retry_n>0:
+				self.ptspluslogin()
+				self.prepare_logininf(src='ptsplus')
+				reqheaders_ptspluslogin = self.merge_two_dicts(reqheaders_ptspluslogin, self.settings['ptspluslogin_cookieinf']['cookieinf'])
+			session.headers.update(reqheaders_ptspluslogin)
+			response = session.post(ptsplus_req_apiurl, json=json.loads(reqStr))
+			responsejson = self.parse_json_response(response.text)
+			if "error" not in responsejson:
+				retryfetch = False
+			retry_n += 1
+		# ptsplus_graphql_guide ptsplus_graphql_videomarketinglabel ptsplus_graphql_programdetail ptsplus_graphql_episode ptsplus_graphql_livestream
+		if mode=='ptsplus_graphql_guide':
+			responsedata = responsejson["data"]["guides"]
+			return responsedata
+		if mode=='ptsplus_graphql_videomarketinglabel':
+			responsedata = responsejson["data"]["videoMarketingLabel"]["videos"]
+			for program_i,program in enumerate(responsedata):
+				tpwholeseasons = []
+				for season_i,season in enumerate(program['program']['seasons']):
+					tpwholeseasons.append(str(season['releaseYear']))
+				tpwholeseasons = ",".join(tpwholeseasons)
+				responsedata[program_i]['program']['wholeseasons'] = f"({tpwholeseasons})" if tpwholeseasons!="" else ""
+			return responsedata
+		if mode=='ptsplus_graphql_programdetail':
+			responsedata = responsejson["data"]["program"]["seasons"]
+			episodes = []
+			for season in responsedata:
+				newseason_data = {'season_'+key:season[key] for key in ['id','name','cover','releaseYear','bannerLOGO','bannerCover']}
+				for episode in season['episodes']:
+					new_epi_data = self.merge_two_dicts(newseason_data, episode)
+					episodes.append(new_epi_data)
+			return episodes
+		if mode=='ptsplus_graphql_episode':
+			responsedata = responsejson["data"]["episode"]
+			setcookies = session.cookies.get_dict()
+			responsedata['cookie'] = setcookies
+			return responsedata
+		print(response)
 
-	def ret_ptsplus_programs_under_a_subcatg(self,genre=1,subgenre=1,limit=20,loginidpw=None):
+	def ret_ptsplus_programs_under_a_mainsubcatg(self,loginidpw=None): #,genre=1,subgenre=1,limit=20,loginidpw=None
+		graphql_req = self.ret_ptsplus_graphql(mode='maincatg').items()
+		catg_requestss = {element[0]:element[1] for catg,element in self.settings['ptspluscatgs'].items()}
 		self.ptspluslogin(ptsplusloginidpw=loginidpw)
-		dramalisturl_under_a_catg = 'https://prod-api.ptsplus.tv/program/genre/{}-{}?limit={}&offset=0'.format(genre,subgenre,limit)
-		tp = self.requesturl_get_jsonret(dramalisturl_under_a_catg,headers=self.ptsplus_reqheader_after_login)
-		tp = tp['data']
+		# dramalisturl_under_a_catg = 'https://prod-api.ptsplus.tv/program/genre/{}-{}?limit={}&offset=0'.format(genre,subgenre,limit)
+		# tp = self.requesturl_get_jsonret(dramalisturl_under_a_catg,headers=self.ptsplus_reqheader_after_login)
+		# tp = tp['data']
+		# 'https://www.ptsplus.tv/graphql'
 		return tp
 	
 	def ret_ptsplus_programs_under_a_subcatg_multi_run_wrapper(self, args):
