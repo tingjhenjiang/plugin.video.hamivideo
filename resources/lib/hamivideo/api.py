@@ -1270,9 +1270,18 @@ class Hamivideo(object):
 		return dramas
 
 	def get_linetv_singleepidata(self, drama_id='', episode='', reqheaders=''):
-		epi_data = 'https://www.linetv.tw/api/part/'+str(drama_id)+'/eps/'+str(episode)+'/part?chocomemberId=null'
+		if episode=='':
+			episode = 1
+		# epi_data = 'https://www.linetv.tw/api/part/'+str(drama_id)+'/eps/'+str(episode)+'/part?chocomemberId=null'
+		epi_data = 'https://www.linetv.tw/api/part/{drama_id}/eps/{episode}/part?appId={appid}&device=desktop_web&instanceId={instanceid}&sessionId={sessionid}&chocomemberId=&productType=VOD&os=&version=10.30.0'. \
+			format(episode=episode,
+		  		drama_id=drama_id,
+				appid='062097f1b1f34e11e7f82aag22000aee',
+				instanceid='f7f7df1c-4b51-4dc0-9fa4-cc04a6acf8f3',
+				sessionid='f849b082-f058-4e30-8bf8-a4ed0dbfc32a')
 		epi_data = self.requesturl_get_ret(epi_data, headers=reqheaders)
 		epi_data = self.parse_json_response(epi_data)
+		print(f"epi_data is {epi_data}")
 		subtitleurl = epi_data['epsInfo']['source'][0]['links'][0]['subtitle']
 		if 'epsInfo' not in list(six.viewkeys(epi_data)):
 			return False #only VIP may watch
