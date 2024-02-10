@@ -886,7 +886,7 @@ class Hamivideo(object):
 					"variables": {
 						"programId": "94861b17-fe6a-4bc2-b3e9-a563b455c690"
 					},
-					"query": "query ProgramDetail($programId: ID!) {  program(id: $programId) {    id    original    useDRM    seasonCount    episodeCount    latestCover    seasons {      id      name      bannerLOGO      bannerCover      cover      releaseYear      releaseMonth      showEpisodeNumber      episodes {        id        number        name        introduction        cover        available        __typename      }      trailers {        id        index        name        introduction        cover        __typename      }      crews {        id        role        name        __typename      }      firstEpisodeIsFree      saleAt      introduction      price      watchedDays      canPurchase      __typename    }    rating    type    introduction    awards    name    categories    isFavorite    tags    inValidRegion    __typename  }}"
+					"query": "query ProgramDetail($programId: ID!) {  program(id: $programId) {    id    original    useDRM    seasonCount    episodeCount    latestCover    seasons {      id      name      bannerLOGO      bannerCover      cover      releaseYear      releaseMonth      showEpisodeNumber      episodes {        id        number        name        introduction        cover        available      video { id isDRM urlPrefixSignature stream subtitles { id name code __typename } }      __typename}      trailers {        id        index        name        introduction        cover        __typename      }      crews {        id        role        name        __typename      }      firstEpisodeIsFree      saleAt      introduction      price      watchedDays      canPurchase      __typename    }    rating    type    introduction    awards    name    categories    isFavorite    tags    inValidRegion    __typename  }}"
 				}
 			""",
 			'ptsplus_graphql_episode' : """
@@ -951,7 +951,7 @@ class Hamivideo(object):
 		reqStr = self.ret_ptsplus_graphql(mode=mode, queryStr=queryStr).strip()
 		reqheaders_std = {
 			'Origin': 'https://www.ptsplus.tv',
-			'user-agent': self.useragent,# 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
+			'user-agent': self.useragent,
 			'Sec-Fetch-Site': 'same-origin',
 			'Accept': '*/*; q=0.01',
 			'Accept-Encoding': 'gzip, deflate, br',
@@ -1003,7 +1003,9 @@ class Hamivideo(object):
 			for season in responsedata:
 				newseason_data = {'season_'+key:season[key] for key in ['id','name','cover','releaseYear','bannerLOGO','bannerCover']}
 				for episode in season['episodes']:
+					video_prefix_dict = {'video_'+video_prefix_dict_k:video_prefix_dict_v for video_prefix_dict_k,video_prefix_dict_v in episode['video'].items()}
 					new_epi_data = self.merge_two_dicts(newseason_data, episode)
+					new_epi_data = self.merge_two_dicts(new_epi_data, video_prefix_dict)
 					episodes.append(new_epi_data)
 			return episodes
 		if mode=='ptsplus_graphql_episode':
@@ -1011,7 +1013,6 @@ class Hamivideo(object):
 			setcookies = session.cookies.get_dict()
 			responsedata['cookie'] = setcookies
 			return responsedata
-		print(response)
 
 	def ret_ptsplus_programs_under_a_mainsubcatg(self,loginidpw=None): #,genre=1,subgenre=1,limit=20,loginidpw=None
 		graphql_req = self.ret_ptsplus_graphql(mode='maincatg').items()

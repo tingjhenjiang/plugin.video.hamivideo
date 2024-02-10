@@ -111,7 +111,7 @@ def list_hamichannels():
 	channels = [{
 		'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
 		'label2': '%s' % (c['program']),
-		'path': plugin.url_for('playchannel', churl=c['link'].replace('.do', '.m3u8'), type='hami'),
+		'path': plugin.url_for('playchannel', churl=c['link'], type='hami'), #.replace('.do', '.m3u8')
 		'icon': c['icon'],
 		'thumbnail': c['icon'],
 		'is_playable': True,
@@ -224,7 +224,6 @@ def list_ptspluschannels(churl="", type="parent"):
 	if type=="listprograms":
 		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_videomarketinglabel', queryStr=churl)
 		plugin.log.info('genreId is: '+churl)
-		# print("program is {}".format(channels[0]) )
 		channels = [{
 			'label': "{} {}".format(v['program']['name'], v['program']['wholeseasons']),
 			'label2': '',
@@ -235,65 +234,35 @@ def list_ptspluschannels(churl="", type="parent"):
 			'is_playable': False,
 		} for v in channels]
 	if type=="listeps":
-		plugin.log.info('programId is: '+churl)
-		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_programdetail', queryStr=churl)#hamic.ret_ptsplus_episodes_under_a_program(churl)
-		channels = [{
-			'label': "{} 第 {:03d} 集 {}  ({})".format( v['season_name'], v['number'], v['name'], v['season_releaseYear']),
-			'label2': '',
-			'path': plugin.url_for('list_ptspluschannels', churl=v['id'], type='retrieveStream'),
-			# 'path': plugin.url_for('playchannel', churl=v['id'], type='ptsplus'),
-			'info': {'plot': v['introduction'],'year':v['season_releaseYear']},
-			'thumbnail': v['cover'],
-			'icon': v['cover'],
-			'is_playable': False,
-		} for v in channels]
-		channels = sorted(channels, key=lambda k: k['label'])
-	if type=="retrieveStream":
-		plugin.log.info('episodeId is: '+churl)
-		videodata = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_episode', queryStr=churl)
-		print(f"videodata is {videodata}")
-		setcookie = videodata['cookie']
 		import six.moves.urllib.parse
-		host = six.moves.urllib.parse.urlparse(videodata['video']['stream']).netloc
-		subtitleurl = None #videodata['video']['subtitles']
-		# urlparameters_dict = six.moves.urllib.parse.parse_qs(videodata['video']['urlPrefixSignature'])
-		urlparameters_dict = dict(six.moves.urllib.parse.parse_qsl(videodata['video']['urlPrefixSignature']))
-		# urlparameters_dict = {'paramname':'value','paramname2':'value2'}
-		# urlparameters_dict['URLPrefix'] = str(1000) #str(urlparameters_dict['Expires'])
-		# del urlparameters_dict['URLPrefix']
-		urlparameters_dict_merged = "&".join(f"{k}={v}" for k,v in urlparameters_dict.items())
-		# urlparameters_dict_merged = six.moves.urllib.parse.quote(videodata['video']['urlPrefixSignature'])
-		# urlparameters_dict_merged = "&".join([f"{e[0]}={e[1]}" for e in urlparameters_dict])
-		print(f"urlparameters_dict is {urlparameters_dict_merged}")
-		streamingurl = videodata['video']['stream']
-		streamingurl += 'hls.m3u8' #'hls_1080p/index.m3u8'
-		streamingurl = streamingurl#+"|Authority=prod-cdn.ptsplus.tv&Referer=https://www.ptsplus.tv&Origin=https://www.ptsplus.tv&User-Agent={useragent}".format(useragent=hamic.useragent)
-		reqheaders_strs = """
-			Authority={host}&Host={host}&Referer=https://www.ptsplus.tv&Origin=https://www.ptsplus.tv&User-Agent={useragent}
-			""".format(host=host,setcookie=setcookie,useragent=hamic.useragent).strip()
-		# print(f"url parameter={urlparameters_dict_merged} and reqheaders_strs={reqheaders_strs}")
-		# &content-type=application/vnd.apple.mpegurl
-		# &accept=*/*&accept-language=zh-TW,zh;q=0.9&dht=1&sec-ch-ua="Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"&sec-ch-ua-mobile=?0&sec-ch-ua-platform="Windows"&sec-fetch-dest=empty&sec-fetch-mode=cors&sec-fetch-site=same-site&
-		channels = [{
-			'label': "play{}".format( "" ),
-			'label2': '',
-			'path': streamingurl,
-			'info': {},
-			'thumbnail': None,
-			'icon': None,
-			'properties': {
-				'inputstream': 'inputstream.adaptive',
-				# 'inputstream.adaptive.license_type': 'com.widevine.alpha',
-				'inputstream.adaptive.manifest_type': 'hls',
-				# 'inputstream.adaptive.license_key': 'time='+str(round(time.time(),3)).replace('.','').ljust(13, '0')+'|'+reqheaders_strs+'||R', #str(int(time.time() ) )
-				'inputstream.adaptive.stream_headers': reqheaders_strs,
-				'inputstream.adaptive.manifest_headers': reqheaders_strs,
-				# 'inputstream.adaptive.manifest_upd_params': '?'+videodata['video']['urlPrefixSignature'],
-				'inputstream.adaptive.manifest_params': urlparameters_dict_merged, #videodata['video']['urlPrefixSignature'], 
-				'inputstream.adaptive.stream_params': urlparameters_dict_merged, #videodata['video']['urlPrefixSignature'], 
-			},
+		plugin.log.info('programId is: '+churl)
+		retchannels = []
+		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_programdetail', queryStr=churl)#hamic.ret_ptsplus_episodes_under_a_program(churl)
+		for channel_i,v in enumerate(channels):
+			host = six.moves.urllib.parse.urlparse(v['video_stream']).netloc
+			subtitleurl = v['video_subtitles'] if len(v['video_subtitles'])>1 else None
+			streamingurl = v['video_stream']
+			streamingurl += 'hls.m3u8'
+			reqheaders_strs = 'Authority=%s&Host=%s&Referer=https://www.ptsplus.tv&Origin=https://www.ptsplus.tv&User-Agent=%s' % (host,host,hamic.useragent)
+			reqheaders_strs = reqheaders_strs.strip()
+			retchannels.append( {
+				'label': "{} 第 {:03d} 集 {}  ({})".format( v['season_name'], v['number'], v['name'], v['season_releaseYear']),
+				'label2': '',
+				'path': streamingurl,
+				'info': {'plot': v['introduction'],'year':v['season_releaseYear']},
+				'thumbnail': v['cover'],
+				'icon': v['cover'],
+				'properties': {
+					'inputstream': 'inputstream.adaptive',
+					'inputstream.adaptive.manifest_type': 'hls',
+					'inputstream.adaptive.stream_headers': reqheaders_strs,
+					'inputstream.adaptive.manifest_headers': reqheaders_strs,
+					'inputstream.adaptive.manifest_params': v['video_urlPrefixSignature'],
+					'inputstream.adaptive.stream_params': v['video_urlPrefixSignature'],
+				},
 			'is_playable': True,
-		}]
+			} )
+		channels = sorted(retchannels, key=lambda k: k['label'])
 	return plugin.finish(channels)
 
 #https://ewcdn14.nowe.com/session/p8-5-f9faefbc85c-318d3fad569f91c/Content/DASH_VOS3/Live/channel(VOS_CH099)/manifest.mpd?token=64115504543cf37b453522b15e9d1f54_1590492587
@@ -579,18 +548,13 @@ def playchannel(churl, type="hami"):
 	if type=='dramaq':
 		streamingurl = hamic.ret_dramaq_streaming_url_by_req(cchurl)
 		subtitleurl = None
-	elif type=='ptsplus':
-		videodata = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_episode', queryStr=churl)
-		subtitleurl = None #videodata['video']['subtitles']
-		streamingurl = videodata['video']['stream']+'hls.m3u8?'
-		streamingurl = streamingurl+videodata['video']['urlPrefixSignature']
-		streamingurl = streamingurl#+"|Authority=prod-cdn.ptsplus.tv&Referer=https://www.ptsplus.tv&Origin=https://www.ptsplus.tv&User-Agent={useragent}".format(useragent=hamic.useragent)
 	elif type=='hami':
 		channelid = os.path.basename(cchurl).replace('.do','')
+		print(f"channelid is {channelid}")
 		streamingurl = hamic.ret_hami_streaming_url_by_req(channelid)
+		print(f"streamingurl is {streamingurl}")
 		# streamingurl = hamic.get_hami_better_q_streamingsrc(streamingurl)
 		streamingurl = streamingurl+"|Referer=https://hamivideo.hinet.net&Origin=https://hamivideo.hinet.net&User-Agent={useragent}".format(useragent=hamic.useragent)
-		# Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36
 		subtitleurl = None
 	#elif type=='linetv':
 	#	epi_data = hamic.ret_linetv_episode_data(url=cchurl)
