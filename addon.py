@@ -532,7 +532,10 @@ def playchannel(churl, type="hami"):
 	if type in ['linetoday','maplestage','linetv','dramaq','poku']:
 		cchurl = churl.replace(fakemediaurl_suffix,'')
 	elif type=='direct':
-		cchurl = plugin.keyboard(six.ensure_str(''), heading="輸入串流網址").strip()
+		if churl=='' or churl is None:
+			cchurl = plugin.keyboard(six.ensure_str(''), heading="輸入串流網址").strip()
+		else:
+			cchurl = churl
 	else:
 		cchurl = churl.replace('.m3u8','.do')
 	plugin.log.info('starting parsing '+cchurl+' by '+type)
@@ -572,7 +575,7 @@ def playchannel(churl, type="hami"):
 		if patternContainsYoutube!=None:
 			youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/|youtube\.com/live/)([^\s&\?]+))",cchurl).group(3)
 			cchurl = "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
-			plugin.log.info('processed youtube url to '+cchurl)
+			plugin.log.info('procceed youtube url with '+cchurl)
 		elif re.search('\.(m3u8|mp4|mov|rtsp|flv|mpd)',cchurl)!=None:
 			cchurl = cchurl
 		else:
