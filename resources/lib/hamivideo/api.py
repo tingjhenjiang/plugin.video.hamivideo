@@ -2,7 +2,7 @@
 import htmlement
 import time
 import sys
-import xml.etree.ElementTree as elemtree
+from xml.etree import ElementTree
 import json
 import re
 import os
@@ -164,6 +164,38 @@ class Hamivideo(object):
 				continue				
 		return ret_elements
 
+	def return_hamidramamovies(self):
+		html_doc = self.requesturl_get_ret(self.settings['hamivideo_host_url']+'%E5%BD%B1%E5%8A%87%E9%A4%A8%E2%81%BA/%E6%9C%80%E6%96%B0.do')
+		root = htmlement.fromstring(html_doc)
+		# parser = html5lib.HTMLParser(tree=html5lib.getTreeBuilder("dom"))
+		# root = parser.parse(html_doc)
+		main_menu_list = []
+		items = root.findall(".//div[@class='swiper-wrapper']/li")
+		items = [item for item in items if item.get('class').find("swiper-slide")!=-1]
+		for item in items:
+			main_menu_list.append({
+				'name': item.find(".//a").text,
+				'link': item.find(".//a").get('href'),
+				'program': '',
+				'icon': '',
+				'programtime': '',
+				'channelid': ''
+			})
+		items = root.findall(".//section/div[@class='title_in']")
+		for item in items:
+			linkitem = item.find(".//div[@class='bt_more_19']/a")
+			if linkitem is not None:
+				# print(f"linkitem is {linkitem.items()}")
+				main_menu_list.append({
+					'name': item.find(".//h2").text,
+					'link': linkitem.get('onclick'),
+					'program': '',
+					'icon': '',
+					'programtime': '',
+					'channelid': ''
+				})
+		return main_menu_list
+
 	def return_hamichannels(self):
 		html_doc = self.requesturl_get_ret(self.settings['hamivideo_host_url']+'%E9%9B%BB%E8%A6%96%E9%A4%A8/%E5%85%A8%E9%83%A8.do')
 		root = htmlement.fromstring(html_doc)
@@ -172,8 +204,8 @@ class Hamivideo(object):
 			title = item.find(".//h3/a").text
 			#link = self.settings['hamivideo_host_url']+item.find(".//h3/a").get("href")
 			#link = link.replace("//","/")
-			link = item.find(".//h3/a").get("onclick")
-			link = self.settings['hamivideo_host_url']+re.findall(r"sendUrl\(\'(.+\.do)\',", link)[0]
+			link = item.find(".//h3/a").get("href")
+			# link = self.settings['hamivideo_host_url']+re.findall(r"sendUrl\(\'(.+\.do)\',", link)[0]
 			channelid = os.path.basename(link).replace('.do','')
 			channel_icon = item.find(".//img").get("src")
 			programtime = item.find(".//div[@class='time']")
@@ -198,7 +230,7 @@ class Hamivideo(object):
 
 	def return_linetodaychs(self):
 		topmenus = htmlement.fromstring(self.requesturl_get_ret(self.linetoday_url)).findall(".//ul[@class='gnb']/li")
-		watchlinetodaytvelem = six.moves.filter(lambda x: re.search("(&#38651;&#35222;)", elemtree.tostring(x)), topmenus ) #
+		watchlinetodaytvelem = six.moves.filter(lambda x: re.search("(&#38651;&#35222;)", ElementTree.tostring(x)), topmenus ) #
 		watchlinetodaytvelem = list(watchlinetodaytvelem)[0]
 		watchlinetodaytvelink = self.linetoday_url+watchlinetodaytvelem.find(".//a").get("href")
 		root = htmlement.fromstring(self.requesturl_get_ret(watchlinetodaytvelink))
@@ -1222,11 +1254,35 @@ class Hamivideo(object):
 		responsejsondramas = responsejson['summary']
 		return responsejsondramas
 
-	def ret_linetv_drama(self, dramaid):
-		responsejsondramas = self.ret_linetv_dramas_metadata()
-		for d in responsejsondramas:
-			if (d['drama_id'])==int(dramaid):
-				return d
+	def ret_linetv_drama(self, dramaid, method="old"):
+		if method=="old":
+			responsejsondramas = self.ret_linetv_dramas_metadata()
+			for d in responsejsondramas:
+				if (d['drama_id'])==int(dramaid):
+					print(f"d is {d} in ret_linetv_drama")
+					return d
+		else:
+			req_url = "https://itad.linetv.tw/api/v2/iba/web/v2?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=10.37.0&countryCode=TW&languageId=zh&dramaId="
+			req_url += str(dramaid)
+			req_headers = {
+				'user-agent': self.useragent,
+				'referer': 'https://www.linetv.tw/',
+				'origin': 'https://www.linetv.tw',
+				"method": "GET",
+				"authority": "itad.linetv.tw",
+				"scheme": "https",
+				# "path": "/api/drama",
+				"sec-fetch-dest": "empty",
+				"dnt": "1",
+				"accept": "*/*",
+				"sec-fetch-site": "same-origin",
+				"sec-fetch-mode": "cors",
+				"accept-encoding": "gzip, deflate, br",
+				"accept-language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7"
+			}
+			responsejson = self.requesturl_get_ret(req_url, headers=req_headers)
+			responsejson = self.parse_json_response(responsejson)
+			print(f"responsejson is {responsejson}")
 
 	def ret_linetv_drama_description_multi_run_wrapper(self, args):
 		return self.ret_linetv_drama_description(*args)

@@ -49,7 +49,7 @@ settings = {
 def index():
 	hamichlst = [{
 		'label': 'Hamivideo channels',
-		'path': plugin.url_for('list_hamichannels'),
+		'path': plugin.url_for('list_hamichannels', type='parent', subcatg='default'),
 		'is_playable': False
 	}]
 	linetodaylst = [{
@@ -104,19 +104,42 @@ def index():
 	#linetodaylst+maplestagelst+viutvlst+pokulst+dramaqlst+
 	return plugin.finish(hamichlst+linetvlst+ptspluslst+directplaylst) #view_mode=50
 
-@plugin.route('/listhamichannels/')
-def list_hamichannels():
+@plugin.route('/listhamichannels/<type>/<subcatg>')
+def list_hamichannels(type="parent", subcatg="default"):
 	hamic = Hamivideo(**settings)
-	channels = hamic.return_hamichannels()
-	channels = [{
-		'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
-		'label2': '%s' % (c['program']),
-		'path': plugin.url_for('playchannel', churl=c['link'], type='hami'), #.replace('.do', '.m3u8')
-		'icon': c['icon'],
-		'thumbnail': c['icon'],
-		'is_playable': True,
-	} for c in channels]
-	length_of_ch = str(len(channels))
+	if type=="tv":
+		channels = hamic.return_hamichannels()
+		channels = [{
+			'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
+			'label2': '%s' % (c['program']),
+			'path': plugin.url_for('playchannel', type='hami', churl=c['link']), #.replace('.do', '.m3u8')
+			'icon': c['icon'],
+			'thumbnail': c['icon'],
+			'is_playable': True,
+		} for c in channels]
+	elif type=='dramavideos':
+		channels = hamic.return_hamidramamovies()
+		channels = [{
+			'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
+			'label2': '%s' % (c['program']),
+			'path': plugin.url_for('list_hamichannels', type=type, subcatg=subcatg),
+			'icon': c['icon'],
+			'thumbnail': c['icon'],
+			'is_playable': False,
+		} for c in channels]
+	else:
+		channels = [
+			{'display':'電視館','name':'tv','icon':'https://static-hamivideo.cdn.hinet.net/resources/images/ic_logo_tv.svg'},
+			{'display':'運動館','name':'sports','icon':'https://static-hamivideo.cdn.hinet.net/resources/images/ic_logo_sport.svg'},
+			{'display':'影劇館','name':'dramavideos','icon':'https://static-hamivideo.cdn.hinet.net/resources/images/ic_logo_video.svg'}
+		]
+		channels = [{
+			'label': c['display'],
+			'path': plugin.url_for('list_hamichannels', type=c['name'], subcatg='default'),
+			'icon': c['icon'],
+			'thumbnail': c['icon'],
+			'is_playable': False,
+		} for c in channels]
 	return plugin.finish(channels)
 
 @plugin.route('/listlinetodaychannels/')
@@ -167,6 +190,7 @@ def list_linetvchannels(churl="", type="parent"):
 			'is_playable': False,
 		} for c in channels]
 	if type=='listeps':
+		print(f"in listeps churl is {churl}")
 		drama = hamic.ret_linetv_drama(int(churl))
 		episode_args = [(int(churl), c) for c in range(1, drama['total_eps']+1)]
 		episodedatas = hamic.try_multi_run(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args)
@@ -532,7 +556,7 @@ def playchannel(churl, type="hami"):
 	if type in ['linetoday','maplestage','linetv','dramaq','poku']:
 		cchurl = churl.replace(fakemediaurl_suffix,'')
 	elif type=='direct':
-		if churl=='' or churl is None:
+		if churl in ['','index.m3u8'] or churl is None:
 			cchurl = plugin.keyboard(six.ensure_str(''), heading="輸入串流網址").strip()
 		else:
 			cchurl = churl
