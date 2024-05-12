@@ -190,17 +190,18 @@ def list_linetvchannels(churl="", type="parent"):
 			'is_playable': False,
 		} for c in channels]
 	if type=='listeps':
-		drama = hamic.ret_linetv_drama(int(churl), method='needparse')
-		episode_args = [(int(churl), c) for c in range(1, drama['total_eps']+1)]
-		episodedatas = [d for d in hamic.try_multi_run(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args) if d is not False]
-		episodedatas = [None] + episodedatas
+		drama_id = int(churl)
+		drama = hamic.ret_linetv_drama(drama_id, method='needparse')
+		episode_args = [(drama_id, c) for c in range(1, drama['total_eps']+1)]
 		try:
-			descriptions = hamic.ret_linetv_drama_episode_seo_descriptions(int(churl))
+			descriptions = hamic.ret_linetv_drama_episode_seo_descriptions(drama_id)
 			descriptions = {int(d['eps']):d['description'] for d in descriptions['info'] }
 		except:
-			descriptions = hamic.try_multi_run(hamic.ret_linetv_drama_description_multi_run_wrapper, episode_args)
-			episodedatas = {int(d['episode']):d for d in episodedatas}
-			descriptions = {int(d['drama_episode']):d['drama_description'] for d in descriptions}
+			# descriptions = hamic.try_multi_run(hamic.ret_linetv_drama_description_multi_run_wrapper, episode_args)
+			description = hamic.ret_linetv_drama_description(drama_id)
+			descriptions = {c:description for c in range(drama['total_eps']+1)}
+		episodedatas = [d for d in hamic.try_multi_run(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args) if d is not False]
+		episodedatas = [None] + episodedatas
 		channels = list()
 		for c in range(1, int(drama['total_eps'])+1):
 			try:

@@ -1307,10 +1307,14 @@ class Hamivideo(object):
 		return self.ret_linetv_drama_description(*args)
 
 	def ret_linetv_drama_description(self, drama_id, episode=1):
+		drama_page_url = 'https://www.linetv.tw/drama/'+str(drama_id)+'/eps/'+str(episode)
+		drama_page_html = self.requesturl_get_ret(drama_page_url)
+		root = htmlement.fromstring(drama_page_html)
+		drama_descriptions = ["".join(d.itertext()) for d in root.find(".//section")]
+		# print(f"drama_descriptions is {drama_descriptions}")
+		# drama_descriptions = [t for t in drama_descriptions if re.search("h3",t) is not None]
+		drama_descriptions = "\n".join(drama_descriptions)
 		if False:
-			drama_page_url = 'https://www.linetv.tw/drama/'+str(drama_id)+'/eps/'+str(episode)
-			drama_page_html = self.requesturl_get_ret(drama_page_url)
-			root = htmlement.fromstring(drama_page_html)
 			try:
 				drama_description1 = list(root.find(".//div[@class='flex-auto overflow-hidden flex items-center font-500 text-16 text-767676']").itertext())
 			except:
@@ -1322,6 +1326,7 @@ class Hamivideo(object):
 			drama_description = "".join(drama_description1+drama_description2)
 			drama_description = drama_description.replace("expand_more", "")
 			return {'drama_id': drama_id, 'drama_description': drama_description, 'drama_episode': episode}
+		return drama_descriptions
 
 	def ret_linetv_drama_episode_seo_descriptions(self, drama_id):
 		referer = "https://www.linetv.tw/drama/{drama_id}".format(drama_id=drama_id)
