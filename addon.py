@@ -190,34 +190,49 @@ def list_linetvchannels(churl="", type="parent"):
 			'is_playable': False,
 		} for c in channels]
 	if type=='listeps':
-		print(f"in listeps churl is {churl}")
-		drama = hamic.ret_linetv_drama(int(churl))
+		drama = hamic.ret_linetv_drama(int(churl), method='needparse')
 		episode_args = [(int(churl), c) for c in range(1, drama['total_eps']+1)]
-		episodedatas = hamic.try_multi_run(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args)
-		descriptions = hamic.try_multi_run(hamic.ret_linetv_drama_description_multi_run_wrapper, episode_args)
-		episodedatas = {int(d['episode']):d for d in episodedatas}
-		descriptions = {int(d['drama_episode']):d['drama_description'] for d in descriptions}
+		episodedatas = [d for d in hamic.try_multi_run(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args) if d is not False]
+		episodedatas = [None] + episodedatas
+		try:
+			descriptions = hamic.ret_linetv_drama_episode_seo_descriptions(int(churl))
+			descriptions = {int(d['eps']):d['description'] for d in descriptions['info'] }
+		except:
+			descriptions = hamic.try_multi_run(hamic.ret_linetv_drama_description_multi_run_wrapper, episode_args)
+			episodedatas = {int(d['episode']):d for d in episodedatas}
+			descriptions = {int(d['drama_episode']):d['drama_description'] for d in descriptions}
 		channels = list()
 		for c in range(1, int(drama['total_eps'])+1):
-			reqheaders = episodedatas[c]['reqheaders']
-			reqheaders_strs = episodedatas[c]['reqheaders_strs']
-			channel = {
-				'label': episodedatas[c]['epsInfo']['eps_title'],
-				'label2': '',
-				'path': episodedatas[c]['multibitrateplaylist'],
-				'icon': drama['poster_url'],
-				'thumbnail': drama['vertical_poster'],
-				'info': {'plot': descriptions[c]},
-				'properties': {
-					'inputstream': 'inputstream.adaptive',
-					'inputstream.adaptive.license_type': 'com.widevine.alpha', #,  'com.microsoft.playready'
-					'inputstream.adaptive.manifest_type': 'hls',
-					'inputstream.adaptive.license_key': 'time='+str(round(time.time(),3)).replace('.','').ljust(13, '0')+'|'+reqheaders_strs+'||R', #str(int(time.time() ) )
-					# 'inputstream.adaptive.stream_headers': reqheaders_strs,
-				},
-				'is_playable': True,
-				#'setsubtitles': episodedatas[c]['subtitle_url']
-			}
+			try:
+				reqheaders_strs = episodedatas[c]['reqheaders_strs']
+				channel = {
+					'label': episodedatas[c]['epsInfo']['eps_title'],
+					'label2': '',
+					'path': episodedatas[c]['multibitrateplaylist'],
+					'icon': drama['vertical_poster_url'] if 'vertical_poster_url' in drama else None,
+					'thumbnail': drama['vertical_poster_url'] if 'vertical_poster_url' in drama else None,
+					'info': {'plot': descriptions[c]},
+					'properties': {
+						'inputstream': 'inputstream.adaptive',
+						'inputstream.adaptive.license_type': 'com.widevine.alpha', #,  'com.microsoft.playready'
+						'inputstream.adaptive.manifest_type': 'hls',
+						'inputstream.adaptive.license_key': 'time='+str(round(time.time(),3)).replace('.','').ljust(13, '0')+'|'+reqheaders_strs+'||R', #str(int(time.time() ) )
+						# 'inputstream.adaptive.stream_headers': reqheaders_strs,
+					},
+					'is_playable': True,
+					#'setsubtitles': episodedatas[c]['subtitle_url']
+				}
+			except:
+				channel = {
+					'label': "第 {c} 集未上架".format(c=c),
+					'label2': '',
+					'path': None,
+					'icon': None,
+					'thumbnail': None,
+					'info': None,
+					'properties': None,
+					'is_playable': False,
+				}
 			channels.append(channel)
 	return plugin.finish(channels)
 
