@@ -219,10 +219,38 @@ class Hamivideo(object):
 		return results
 
 	def return_get_hamidramamovies_infopage_streaming_url(self, link='', contentPk=None, loginidpw=None, is_singleepisode=True, **kwargs):
-		ret = self.ret_hami_streaming_url_by_req(channel_id=contentPk, loginidpw=loginidpw, ret_session=False)
+		if contentPk is not None:
+			ret = self.ret_hami_streaming_url_by_req(channel_id=contentPk, loginidpw=loginidpw, ret_session=False)
+			return ret
+		
 		# self.prepare_logininf(src='hami')
-		# channelapiurl = 'https://hamivideo.hinet.net/'+link
-		# print(f"channelapiurl is {channelapiurl}")
+		channelapiurl = 'https://hamivideo.hinet.net/'+link
+		# 間諜家家酒
+		html_doc = self.requesturl_get_ret(channelapiurl)
+		# print(f"link is {link}\n")
+		# product/239732.do?cs=2
+		responsejson = []
+		matched_lines = htmlement.fromstring(html_doc)
+		matched_streamingdata = matched_lines.findall(".//div[@class='list_program']/ul[@class='program_class_in']//li")
+		matched_descriptions = matched_lines.findall(".//div[@class='descript']//p")
+		matched_posters = matched_lines.findall(".//div[@class='pic posterImage']//img")
+		for itemkey,item in enumerate(matched_streamingdata):
+			title = "".join(list(item.itertext()))
+			episode = item.find(".//p").text
+			description = matched_descriptions[itemkey].get("data")
+			item = {
+				"episode": episode,
+				"program": title,
+				"name": title,
+				"description": description,
+				"icon": matched_posters[itemkey].get("data-src"),
+				"thumbnail": matched_posters[itemkey].get("data-src"),
+				"rating": item.get("data-rating"),
+				"contentPk": item.get("data-id"),
+				"link": item.get("data-id"),
+			}
+			responsejson.append(item)
+		# sendUrl('/play/239732/OTT_VOD_0000339039.do','OTT_VOD_0000336292','0','');
 		# loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
 		# reqheaders_std = {
 		# 	'Origin': 'https://hamivideo.hinet.net',
@@ -244,8 +272,6 @@ class Hamivideo(object):
 		# session.headers.update(reqheaders_hamilogin)
 		# response = session.get(channelapiurl, cookies=self.settings['hamilogin_cookieinf']['cookieinf'])
 		# responsejson = self.parse_json_response(response.text)
-		responsejson = ret
-		print("responsejson is {}".format(responsejson))
 		return responsejson
 
 	def return_hamichannels(self):

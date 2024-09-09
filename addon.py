@@ -142,9 +142,8 @@ def list_hamichannels(type="parent", subcatg="default"):
 			subcatg = subcatg
 		channels = []
 		for c in hamic.return_searchinghamidramamovies(keyword=subcatg):
-			targetpath = plugin.url_for('playchannel', type='hami', churl=c['contentPk'])
-			# plugin.url_for('playchannel', type='hamidramavideo', churl=c['link'], additionalchurl=c['contentPk']) # if not c['series'] else plugin.url_for('list_hamichannels', type='return_choose_episodes_hamidramamovies', subcatg=c['link'])
 			is_playable = True if not c['series'] else False
+			targetpath = plugin.url_for('playchannel', type='hami', churl=c['contentPk']) if is_playable else plugin.url_for('list_hamichannels', type='return_choose_episodes_hamidramamovies', subcatg=c['link'])
 			toappend_dict = {
 				'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
 				'label2': '%s' % (c['program']),
@@ -155,7 +154,25 @@ def list_hamichannels(type="parent", subcatg="default"):
 			}
 			channels.append(toappend_dict)
 	elif type=='return_choose_episodes_hamidramamovies':
-		pass
+		channels = []
+		# {
+		# 	'label': '回搜尋結果',
+		# 	'label2': None,
+		# 	'path': plugin.url_for('list_hamichannels', type='return_searchinghamidramamovies', subcatg=subcatg),
+		# 	'icon': None,
+		# 	'thumbnail': None,
+		# 	'is_playable': False,
+		# 	'info': None
+		# }
+		channels = channels + [{
+				'label': '第 %s 集 %s' % (c['episode'], c['name']),
+				'label2': c['description'],
+				'path': plugin.url_for('playchannel', type='hami', churl=c['contentPk']),
+				'icon': c['icon'],
+				'thumbnail': c['icon'],
+				'is_playable': True,
+				'info': {'plot': c['description']}, #,'year':v['season_releaseYear']
+			} for c in hamic.return_get_hamidramamovies_infopage_streaming_url(link=subcatg)] #間諜家家酒
 	else:
 		channels = [
 			{'display':'電視館','name':'tv','icon':'https://static-hamivideo.cdn.hinet.net/resources/images/ic_logo_tv.svg'},
