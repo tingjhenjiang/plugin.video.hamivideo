@@ -195,6 +195,59 @@ class Hamivideo(object):
 				})
 		return main_menu_list
 
+	def return_searchinghamidramamovies(self, keyword='', **kwargs):
+		postdata = 'keyword={}&dataSource=%E6%89%80%E6%9C%89%E5%BD%B1%E7%89%87&sorting=3&recstart=0&recend=31'.format(keyword)
+		req_headers = {
+			'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+			'Host': 'hamivideo.hinet.net'
+		}
+		r = requests.post('https://hamivideo.hinet.net/search/content.do', data=postdata, json=json, headers=req_headers, **kwargs)
+		results = self.parse_json_response(r.text)
+		results = results['result']
+		results = [{
+			'name': None,
+			'programtime': None,
+			'program': "{} ({})".format(c['productName'], c['seriesValue']),
+			'icon':c['imageId'],
+			'thumbnail':c['imageId'],
+			'contentId':c['contentId'],
+			'contentPk':c['contentPk'],
+			'link':c['link'],
+			'info':c['description'],
+			'series':c['series'],
+		} for c in results]
+		return results
+
+	def return_get_hamidramamovies_infopage_streaming_url(self, link='', contentPk=None, loginidpw=None, is_singleepisode=True, **kwargs):
+		ret = self.ret_hami_streaming_url_by_req(channel_id=contentPk, loginidpw=loginidpw, ret_session=False)
+		# self.prepare_logininf(src='hami')
+		# channelapiurl = 'https://hamivideo.hinet.net/'+link
+		# print(f"channelapiurl is {channelapiurl}")
+		# loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
+		# reqheaders_std = {
+		# 	'Origin': 'https://hamivideo.hinet.net',
+		# 	'user-agent': self.useragent,# 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
+		# 	'Sec-Fetch-Site': 'same-origin',
+		# 	'Accept': '*/*; q=0.01',
+		# 	'Accept-Encoding': 'gzip, deflate, br',
+		# 	'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+		# 	'Host': 'hamivideo.hinet.net',
+		# 	'DNT': '1',
+		# }
+		# reqheaders_hamilogin = self.merge_two_dicts(reqheaders_std, {
+		# 	'Referer': "https://hamivideo.hinet.net/hamivideo/index.do",
+		# 	'Sec-Fetch-Dest': 'empty',
+		# 	'Sec-Fetch-Mode': 'cors',
+		# 	'X-Requested-With': 'XMLHttpRequest',
+		# })
+		# session = requests.Session()
+		# session.headers.update(reqheaders_hamilogin)
+		# response = session.get(channelapiurl, cookies=self.settings['hamilogin_cookieinf']['cookieinf'])
+		# responsejson = self.parse_json_response(response.text)
+		responsejson = ret
+		print("responsejson is {}".format(responsejson))
+		return responsejson
+
 	def return_hamichannels(self):
 		html_doc = self.requesturl_get_ret(self.settings['hamivideo_host_url']+'%E9%9B%BB%E8%A6%96%E9%A4%A8/%E5%85%A8%E9%83%A8.do')
 		root = htmlement.fromstring(html_doc)

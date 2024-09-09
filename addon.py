@@ -127,6 +127,34 @@ def list_hamichannels(type="parent", subcatg="default"):
 			'thumbnail': c['icon'],
 			'is_playable': False,
 		} for c in channels]
+		channels.append({
+			'label': '搜尋影片',
+			'label2': '搜尋影片',
+			'path': plugin.url_for('list_hamichannels', type='return_searchinghamidramamovies', subcatg=subcatg),
+			'icon': None,
+			'thumbnail': None,
+			'is_playable': False,
+		})
+	elif type=='return_searchinghamidramamovies':
+		if subcatg in ['','default','index.m3u8'] or subcatg is None:
+			subcatg = plugin.keyboard(six.ensure_str(''), heading="輸入串流網址").strip()
+		else:
+			subcatg = subcatg
+		channels = []
+		for c in hamic.return_searchinghamidramamovies(keyword=subcatg):
+			targetpath = plugin.url_for('playchannel', type='hamidramavideo', churl=c['link'], additionalchurl=c['contentPk']) # if not c['series'] else plugin.url_for('list_hamichannels', type='return_choose_episodes_hamidramamovies', subcatg=c['link'])
+			is_playable = True if not c['series'] else False
+			toappend_dict = {
+				'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
+				'label2': '%s' % (c['program']),
+				'path': targetpath,
+				'icon': c['icon'],
+				'thumbnail': c['icon'],
+				'is_playable': is_playable,
+			}
+			channels.append(toappend_dict)
+	elif type=='return_choose_episodes_hamidramamovies':
+		pass
 	else:
 		channels = [
 			{'display':'電視館','name':'tv','icon':'https://static-hamivideo.cdn.hinet.net/resources/images/ic_logo_tv.svg'},
@@ -565,8 +593,8 @@ def list_pokuchannels(churl='default', type='parent'):
 		} for v in results]
 	return plugin.finish(channels, sort_methods = ['label'])
 
-@plugin.route('/play/<type>/<churl>')
-def playchannel(churl, type="hami"):
+@plugin.route('/play/<type>/<churl>/<additionalchurl>')
+def playchannel(churl, type="hami", additionalchurl=None):
 	hamic = Hamivideo(**settings)
 	#hamic.clear_other_browser_processed()
 	if type in ['linetoday','maplestage','linetv','dramaq','poku']:
@@ -590,6 +618,10 @@ def playchannel(churl, type="hami"):
 		#https://www.52pojie.cn/thread-1123891-1-1.html
 	if type=='dramaq':
 		streamingurl = hamic.ret_dramaq_streaming_url_by_req(cchurl)
+		subtitleurl = None
+	elif type=='hamidramavideo':
+		streamingurl = hamic.return_get_hamidramamovies_infopage_streaming_url(link=cchurl, contentPk=additionalchurl)
+		streamingurl = streamingurl+"|Referer=https://hamivideo.hinet.net&Origin=https://hamivideo.hinet.net&User-Agent={useragent}".format(useragent=hamic.useragent)
 		subtitleurl = None
 	elif type=='hami':
 		channelid = os.path.basename(cchurl).replace('.do','')
