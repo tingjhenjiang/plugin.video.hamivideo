@@ -195,87 +195,9 @@ class Hamivideo(object):
 				})
 		return main_menu_list
 
-	def return_searchinghamidramamovies(self, keyword='', **kwargs):
-		postdata = 'keyword={}&dataSource=%E6%89%80%E6%9C%89%E5%BD%B1%E7%89%87&sorting=3&recstart=0&recend=31'.format(keyword)
-		req_headers = {
-			'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-			'Host': 'hamivideo.hinet.net'
-		}
-		r = requests.post('https://hamivideo.hinet.net/search/content.do', data=postdata, json=json, headers=req_headers, **kwargs)
-		results = self.parse_json_response(r.text)
-		results = results['result']
-		results = [{
-			'name': None,
-			'programtime': None,
-			'program': "{} ({})".format(c['productName'], c['seriesValue']),
-			'icon':c['imageId'],
-			'thumbnail':c['imageId'],
-			'contentId':c['contentId'],
-			'contentPk':c['contentPk'],
-			'link':c['link'],
-			'info':c['description'],
-			'series':c['series'],
-		} for c in results]
-		return results
-
-	def return_get_hamidramamovies_infopage_streaming_url(self, link='', contentPk=None, loginidpw=None, is_singleepisode=True, **kwargs):
-		if contentPk is not None:
-			ret = self.ret_hami_streaming_url_by_req(channel_id=contentPk, loginidpw=loginidpw, ret_session=False)
-			return ret
-		
-		# self.prepare_logininf(src='hami')
-		channelapiurl = 'https://hamivideo.hinet.net/'+link
-		# 間諜家家酒
-		html_doc = self.requesturl_get_ret(channelapiurl)
-		# print(f"link is {link}\n")
-		# product/239732.do?cs=2
-		responsejson = []
-		matched_lines = htmlement.fromstring(html_doc)
-		matched_streamingdata = matched_lines.findall(".//div[@class='list_program']/ul[@class='program_class_in']//li")
-		matched_descriptions = matched_lines.findall(".//div[@class='descript']//p")
-		matched_posters = matched_lines.findall(".//div[@class='pic posterImage']//img")
-		for itemkey,item in enumerate(matched_streamingdata):
-			title = "".join(list(item.itertext()))
-			episode = item.find(".//p").text
-			description = matched_descriptions[itemkey].get("data")
-			item = {
-				"episode": episode,
-				"program": title,
-				"name": title,
-				"description": description,
-				"icon": matched_posters[itemkey].get("data-src"),
-				"thumbnail": matched_posters[itemkey].get("data-src"),
-				"rating": item.get("data-rating"),
-				"contentPk": item.get("data-id"),
-				"link": item.get("data-id"),
-			}
-			responsejson.append(item)
-		# sendUrl('/play/239732/OTT_VOD_0000339039.do','OTT_VOD_0000336292','0','');
-		# loginidpw = self.hamiloginidpw if loginidpw==None else loginidpw
-		# reqheaders_std = {
-		# 	'Origin': 'https://hamivideo.hinet.net',
-		# 	'user-agent': self.useragent,# 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36',
-		# 	'Sec-Fetch-Site': 'same-origin',
-		# 	'Accept': '*/*; q=0.01',
-		# 	'Accept-Encoding': 'gzip, deflate, br',
-		# 	'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-		# 	'Host': 'hamivideo.hinet.net',
-		# 	'DNT': '1',
-		# }
-		# reqheaders_hamilogin = self.merge_two_dicts(reqheaders_std, {
-		# 	'Referer': "https://hamivideo.hinet.net/hamivideo/index.do",
-		# 	'Sec-Fetch-Dest': 'empty',
-		# 	'Sec-Fetch-Mode': 'cors',
-		# 	'X-Requested-With': 'XMLHttpRequest',
-		# })
-		# session = requests.Session()
-		# session.headers.update(reqheaders_hamilogin)
-		# response = session.get(channelapiurl, cookies=self.settings['hamilogin_cookieinf']['cookieinf'])
-		# responsejson = self.parse_json_response(response.text)
-		return responsejson
-
 	def return_hamichannels(self):
-		html_doc = self.requesturl_get_ret(self.settings['hamivideo_host_url']+'%E9%9B%BB%E8%A6%96%E9%A4%A8/%E5%85%A8%E9%83%A8.do')
+		# html_doc = self.requesturl_get_ret(self.settings['hamivideo_host_url']+'%E9%9B%BB%E8%A6%96%E9%A4%A8/%E5%85%A8%E9%83%A8.do')
+		html_doc = self.requesturl_get_ret(self.settings['hamivideo_host_url']+'%E9%9B%BB%E8%A6%96%E9%81%8B%E5%8B%95%E9%A4%A8/%E5%85%A8%E9%83%A8.do')
 		root = htmlement.fromstring(html_doc)
 		main_menu_list = []
 		for item in root.findall(".//div[@class='tvListBlock']/div[@class='list_item']"):
