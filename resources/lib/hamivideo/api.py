@@ -3,6 +3,7 @@ import htmlement
 import time
 import sys
 from xml.etree import ElementTree
+from html.parser import HTMLParser
 import json
 import re
 import os
@@ -38,9 +39,35 @@ try:
 	workers = multiprocessing.cpu_count()
 except:
 	workers = 4
-#from xbmcswift2 import Plugin, xbmc, xbmcaddon, xbmcgui, xbmcplugin
 
+#from xbmcswift2 import Plugin, xbmc, xbmcaddon, xbmcgui, xbmcplugin
 #https://stackoverflow.com/questions/57167357/why-does-socket-interfere-with-selenium
+
+# class ScriptTagParser(HTMLParser):
+#     def __init__(self):
+#         super().__init__()
+#         self.scripts = []
+#         self.in_script = False
+#         self.current_script = {"src": None, "content": ""}
+
+#     def handle_starttag(self, tag, attrs):
+#         if tag == "script":
+#             self.in_script = True
+#             self.current_script = {"src": None, "content": ""}
+#             for attr_name, attr_value in attrs:
+#                 if attr_name == "src":
+#                     self.current_script["src"] = attr_value
+
+#     def handle_endtag(self, tag):
+#         if tag == "script" and self.in_script:
+#             self.scripts.append(self.current_script)
+#             self.in_script = False
+
+#     def handle_data(self, data):
+#         if self.in_script:
+#             self.current_script["content"] += data.strip()
+
+# script_parser_instance = ScriptTagParser()
 
 class Hamivideo(object):
 
@@ -1172,6 +1199,16 @@ class Hamivideo(object):
 						})
 			target_catgsnavs = six.moves.reduce(self.merge_two_dicts,target_catgsnavs)
 			return target_catgsnavs
+
+	def ret_linetv_search_res_dict(self, keyword):
+		# print(f"got keyword={keyword}")
+		# target_url = "https://www.linetv.tw/search?action_value={keyword}&q={keyword}&source=SEARCH_BAR".format(keyword=keyword)
+		linetv_programs_data = self.ret_linetv_dramas_metadata(catg='')
+		linetv_programs_data_needed = []
+		for element in linetv_programs_data:
+			if ('name' in element and str(element['name']).find(keyword)!=-1) or ('introduction' in element and str(element['introduction']).find(keyword)!=-1):
+				linetv_programs_data_needed.append(element)
+		return linetv_programs_data_needed
 
 	def ret_linetv_dramas_of_a_catg(self, catgurl=1):
 		researchres = re.search(r'channel/(\d+)/genre/(\d+)',catgurl)

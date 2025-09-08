@@ -49,7 +49,7 @@ settings = {
 def index():
 	hamichlst = [{
 		'label': 'Hamivideo channels',
-		'path': plugin.url_for('list_hamichannels', type='parent', subcatg='default'),
+		'path': plugin.url_for('list_hamichannels', menutype='parent', subcatg='default'),
 		'is_playable': False
 	}]
 	linetodaylst = [{
@@ -59,27 +59,27 @@ def index():
 	}]
 	maplestagelst = [{
 		'label': 'MapleStage channels',
-		'path': plugin.url_for('list_maplestagechs', churl="default", type='parent'),
+		'path': plugin.url_for('list_maplestagechs', churl="default", menutype='parent'),
 		'is_playable': False
 	}]
 	linetvlst = [{
 		'label': 'Linetv channels',
-		'path': plugin.url_for('list_linetvchannels', churl="default", type='parent', total_eps='default'),
+		'path': plugin.url_for('list_linetvchannels', churl="default", menutype='parent', total_eps='default'),
 		'is_playable': False
 	}]
 	ptspluslst = [{
 		'label': 'PTS plus channels',
-		'path': plugin.url_for('list_ptspluschannels', churl="default", type='parent', total_eps='default'),
+		'path': plugin.url_for('list_ptspluschannels', churl="default", menutype='parent', total_eps='default'),
 		'is_playable': False
 	}]
 	viutvlst = [{
 		'label': 'Viutv channels',
-		'path': plugin.url_for('list_viutvchannels', churl="default", type='parent'),
+		'path': plugin.url_for('list_viutvchannels', churl="default", menutype='parent'),
 		'is_playable': False
 	}]
 	pokulst = [{
 		'label': 'Poku channels',
-		'path': plugin.url_for('list_pokuchannels', churl="default", type='parent'),
+		'path': plugin.url_for('list_pokuchannels', churl="default", menutype='parent'),
 		'is_playable': False
 	}]
 	dramaqlst = [{
@@ -89,7 +89,7 @@ def index():
 	}]
 	directplaylst = [{
 		'label': 'Play Streaming URL Directly',
-		'path': plugin.url_for('playchannel', churl=fakemediaurl_suffix, type='direct'),
+		'path': plugin.url_for('playchannel', churl=fakemediaurl_suffix, menutype='direct'),
 		'is_playable': True,
 	}]
 	backgroundinfolist = [{
@@ -104,25 +104,25 @@ def index():
 	#linetodaylst+maplestagelst+viutvlst+pokulst+dramaqlst+
 	return plugin.finish(hamichlst+linetvlst+ptspluslst+directplaylst) #view_mode=50
 
-@plugin.route('/listhamichannels/<type>/<subcatg>')
-def list_hamichannels(type="parent", subcatg="default"):
+@plugin.route('/listhamichannels/<menutype>/<subcatg>')
+def list_hamichannels(menutype="parent", subcatg="default"):
 	hamic = Hamivideo(**settings)
-	if type=="tv":
+	if menutype=="tv":
 		channels = hamic.return_hamichannels()
 		channels = [{
 			'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
 			'label2': '%s' % (c['program']),
-			'path': plugin.url_for('playchannel', type='hami', churl=c['link']), #.replace('.do', '.m3u8')
+			'path': plugin.url_for('playchannel', menutype='hami', churl=c['link']), #.replace('.do', '.m3u8')
 			'icon': c['icon'],
 			'thumbnail': c['icon'],
 			'is_playable': True,
 		} for c in channels]
-	elif type=='dramavideos':
+	elif menutype=='dramavideos':
 		channels = hamic.return_hamidramamovies()
 		channels = [{
 			'label': '%s %s %s' % (c['name'], c['programtime'], c['program']),
 			'label2': '%s' % (c['program']),
-			'path': plugin.url_for('list_hamichannels', type=type, subcatg=subcatg),
+			'path': plugin.url_for('list_hamichannels', menutype=menutype, subcatg=subcatg),
 			'icon': c['icon'],
 			'thumbnail': c['icon'],
 			'is_playable': False,
@@ -134,7 +134,7 @@ def list_hamichannels(type="parent", subcatg="default"):
 		]
 		channels = [{
 			'label': c['display'],
-			'path': plugin.url_for('list_hamichannels', type=c['name'], subcatg='default'),
+			'path': plugin.url_for('list_hamichannels', menutype=c['name'], subcatg='default'),
 			'icon': c['icon'],
 			'thumbnail': c['icon'],
 			'is_playable': False,
@@ -147,7 +147,7 @@ def list_linetodaychannels():
 	channels = hamic.return_linetodaychs()
 	channels = [{
 		'label': c['name'],
-		'path': plugin.url_for('playchannel', churl=c['link'].replace('.do', '.m3u8')+fakemediaurl_suffix, type='linetoday'),
+		'path': plugin.url_for('playchannel', churl=c['link'].replace('.do', '.m3u8')+fakemediaurl_suffix, menutype='linetoday'),
 		'icon': c['icon'],
 		'thumbnail': c['icon'],
 		'is_playable': True,
@@ -155,40 +155,60 @@ def list_linetodaychannels():
 	length_of_ch = str(len(channels))
 	return plugin.finish(channels)
 
-@plugin.route('/listlinetvchannels/<type>/<churl>')
-def list_linetvchannels(churl="", type="parent"):
+@plugin.route('/listlinetvchannels/<menutype>/<churl>')
+def list_linetvchannels(churl="", menutype="parent"):
 	hamic = Hamivideo(**settings)
-	if type=="parent":
+	if menutype=="parent":
 		channels = hamic.ret_linetv_main_menu_catgs(hamic.linetv_host_url)
 		channels = [{
 			'label': k,
-			'path': plugin.url_for('list_linetvchannels', churl=v, type='listsubcatgs'),
+			'path': plugin.url_for('list_linetvchannels', churl=v, menutype='listsubcatgs'),
 			'icon': '',
 			'thumbnail': '',
 			'is_playable': False,
 		} for k,v in channels.items()]
-	if type=="listsubcatgs":
+		channels.append({
+			'label': '搜尋影片',
+			'path': plugin.url_for('list_linetvchannels', churl='first', menutype='search'),
+			'icon': '',
+			'thumbnail': '',
+			'is_playable': False,
+		})
+	if menutype=="search":
+		if churl=='first':
+			keyword = plugin.keyboard(six.ensure_str(''), heading="輸入搜尋關鍵字").strip()
+			channels = hamic.ret_linetv_search_res_dict(keyword=keyword)
+			channels = [{
+				'label': c['name'] if 'name' in c else None,
+				'label2': c['introduction'] if 'introduction' in c else None,
+				'path': plugin.url_for('list_linetvchannels', churl=c['drama_id'], menutype='listeps'),
+				'icon': c['poster_url'] if 'poster_url' in c else None,
+				'thumbnail': c['vertical_poster'] if 'poster_url' in c else None,
+				'info': None, #c['info'],
+				'is_playable': False,
+			} for c in channels]
+	if menutype=="listsubcatgs":
 		channels = hamic.ret_linetv_main_menu_catgs(churl)
 		channels = [{
 			'label': k,
-			'path': plugin.url_for('list_linetvchannels', churl=v, type='listdramas'),
+			'path': plugin.url_for('list_linetvchannels', churl=v, menutype='listdramas'),
 			'icon': '',
 			'thumbnail': '',
 			'is_playable': False,
 		} for k,v in channels.items()]
-	if type=="listdramas":
+	if menutype=="listdramas":
 		#channels = hamic.ret_linetv_dramas_with_description_of_a_catg(churl)
 		channels = hamic.ret_linetv_dramas_of_a_catg(churl)
 		channels = [{
 			'label': c['name'],
 			'label2': c['description'],
-			'path': plugin.url_for('list_linetvchannels', churl=c['id'], type='listeps'),
+			'path': plugin.url_for('list_linetvchannels', churl=c['id'], menutype='listeps'),
 			'icon': c['posterUrl'],
 			'thumbnail': c['verticalPosterUrl'],
 			'info': c['info'],
 			'is_playable': False,
 		} for c in channels]
-	if type=='listeps':
+	if menutype=='listeps':
 		drama_id = int(churl)
 		drama = hamic.ret_linetv_drama(drama_id, method='needparse')
 		episode_args = [(drama_id, c) for c in range(1, drama['total_eps']+1)]
@@ -236,43 +256,43 @@ def list_linetvchannels(churl="", type="parent"):
 			channels.append(channel)
 	return plugin.finish(channels)
 
-@plugin.route('/listptspluschannels/<type>/<churl>')
-def list_ptspluschannels(churl="", type="parent"):
+@plugin.route('/listptspluschannels/<menutype>/<churl>')
+def list_ptspluschannels(churl="", menutype="parent"):
 	hamic = Hamivideo(**settings)
-	if type=="parent":
+	if menutype=="parent":
 		channels = hamic.ret_ptsplus_menu_catgs(mode='maincatg')
 		channels = [{
 			'label': v['genreName'],
-			'path': plugin.url_for('list_ptspluschannels', churl=v['genreId'], type='listtopics'),
+			'path': plugin.url_for('list_ptspluschannels', churl=v['genreId'], menutype='listtopics'),
 			'icon': '',
 			'thumbnail': '',
 			'is_playable': False,
 		} for v in channels]
-	if type=="listtopics":
+	if menutype=="listtopics":
 		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_guide', queryStr=churl)
 		plugin.log.info('genreId is: '+churl)
 		channels = [{
 			'label': v['marketingLabel']['name'],
 			'label2': '',
-			'path': plugin.url_for('list_ptspluschannels', churl=v['marketingLabel']['id'], type='listprograms'),
+			'path': plugin.url_for('list_ptspluschannels', churl=v['marketingLabel']['id'], menutype='listprograms'),
 			'info': {},
 			'thumbnail': v['marketingLabel']['cover'],
 			'icon': v['marketingLabel']['cover'],
 			'is_playable': False,
 		} for v in channels]
-	if type=="listprograms":
+	if menutype=="listprograms":
 		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_videomarketinglabel', queryStr=churl)
 		plugin.log.info('genreId is: '+churl)
 		channels = [{
 			'label': "{} {}".format(v['program']['name'], v['program']['wholeseasons']),
 			'label2': '',
-			'path': plugin.url_for('list_ptspluschannels', churl=v['program']['id'], type='listeps'),
+			'path': plugin.url_for('list_ptspluschannels', churl=v['program']['id'], menutype='listeps'),
 			'info': {'plot': v['program']['introduction']},
 			'thumbnail': v['program']['latestCover'],
 			'icon': v['program']['latestCover'],
 			'is_playable': False,
 		} for v in channels]
-	if type=="listeps":
+	if menutype=="listeps":
 		import six.moves.urllib.parse
 		plugin.log.info('programId is: '+churl)
 		retchannels = []
@@ -313,14 +333,14 @@ def list_ptspluschannels(churl="", type="parent"):
 #listitem.setMimeType('application/dash+xml')
 #listitem.setProperty('inputstream.adaptive.stream_headers', 'Referer=blah&User-Agent=Blah')
 #listitem.setContentLookup(False)
-@plugin.route('/listviutvchannels/<type>/<churl>')
-def list_viutvchannels(churl="", type="parent"):
+@plugin.route('/listviutvchannels/<menutype>/<churl>')
+def list_viutvchannels(churl="", menutype="parent"):
 	hamic = Hamivideo(**settings)
 	channels = [hamic.ret_viutv(chid) for chid in ["096","099"]]
 	channels = [{
 			'label': c['name'],
 			'label2': c['description'],
-			'path': plugin.url_for('playchannel', churl=c['mpdurl'], type='viutv'),
+			'path': plugin.url_for('playchannel', churl=c['mpdurl'], menutype='viutv'),
 			'icon': c['icon'],
 			'thumbnail': c['icon'],
 			'info': c['info'],
@@ -348,34 +368,34 @@ def list_viutvchannels(churl="", type="parent"):
 		} for c in channels]
 	return plugin.finish(channels)
 
-@plugin.route('/listmaplestagedramas/<type>/<churl>')
-def list_maplestagechs(churl="", type="parent"):
+@plugin.route('/listmaplestagedramas/<menutype>/<churl>')
+def list_maplestagechs(churl="", menutype="parent"):
 	hamic = Hamivideo(**settings)
-	if type=="parent":
+	if menutype=="parent":
 		channels = hamic.ret_maplestage_parent_catgs()
 		channels = [{
 			'label': c['name'], #+xbmc.executebuiltin('Container.SetViewMode(%s)' % view_mode_id)
-			'path': plugin.url_for('list_maplestagechs', churl=c['link'], type='underparent'),
+			'path': plugin.url_for('list_maplestagechs', churl=c['link'], menutype='underparent'),
 			'icon': c['icon'],
 			'thumbnail': c['icon'],
 			'is_playable': False,
 		} for c in channels]
-	if type=="underparent":
+	if menutype=="underparent":
 		channels = hamic.ret_maplestage_dramas_of_a_parent(churl)
 		channels = [{
 			'label': c['name'],
-			'path': plugin.url_for('list_maplestagechs', churl=c['link'], type='underdrama'),
+			'path': plugin.url_for('list_maplestagechs', churl=c['link'], menutype='underdrama'),
 			'icon': c['icon'],
 			'thumbnail': c['icon'],
 			'is_playable': False,
 		} for c in channels]
-	if type=="underdrama":
+	if menutype=="underdrama":
 		channels = hamic.ret_episode_links_of_a_maplestage_drama(churl)
 		drama_name = channels[0]['program']
 		channels = [{
 			'label': c['name'],
 			'label2': c['info']['plot'],
-			'path': plugin.url_for('playchannel', churl=c['link']+fakemediaurl_suffix, type='maplestage'),
+			'path': plugin.url_for('playchannel', churl=c['link']+fakemediaurl_suffix, menutype='maplestage'),
 			'icon': c['icon'],
 			'thumbnail': c['icon'],
 			'info': c['info'],
@@ -399,7 +419,7 @@ def list_dramaq(drama_name="None"):
 	channels = hamic.ret_dramaq_episodes(drama_name)
 	channels = [{
 		'label': c['name'],
-		'path': plugin.url_for('playchannel', churl=c['link']+fakemediaurl_suffix, type='dramaq'),
+		'path': plugin.url_for('playchannel', churl=c['link']+fakemediaurl_suffix, menutype='dramaq'),
 		'icon': c['icon'],
 		'thumbnail': c['icon'],
 		'info': c['info'],
@@ -448,8 +468,8 @@ def show_channel_detail(churl):
 	#}]
 	#return plugin.finish(items)
 
-@plugin.route('/list_pokuchannels/<churl>/<type>')
-def list_pokuchannels(churl='default', type='parent'):
+@plugin.route('/list_pokuchannels/<churl>/<menutype>')
+def list_pokuchannels(churl='default', menutype='parent'):
 	hamic = Hamivideo(**settings)
 	nextmode = {
 		'parent': 'drama',
@@ -463,7 +483,7 @@ def list_pokuchannels(churl='default', type='parent'):
 		'search': 'list_pokuchannels',
 		'listepisodes': 'playchannel',
 	}
-	if type=='parent':
+	if menutype=='parent':
 		channels = {
 			'電視劇': 'tvseries',
 			'電視劇美劇': 'us',
@@ -504,7 +524,7 @@ def list_pokuchannels(churl='default', type='parent'):
 		channels = hamic.merge_two_dicts(channels, additional_channels)
 		channels = [{
 			'label': six.ensure_str(k),
-			'path': plugin.url_for(nextpluginurl[type], churl=v, type=nextmode[type]),
+			'path': plugin.url_for(nextpluginurl[menutype], churl=v, menutype=nextmode[menutype]),
 			'icon': '',
 			'thumbnail': '',
 			'info': '',
@@ -512,19 +532,19 @@ def list_pokuchannels(churl='default', type='parent'):
 		} for k,v in channels.items()]
 		channels.append({
 			'label': six.ensure_str('搜尋poku.tv'),
-			'path': plugin.url_for(nextpluginurl[type], churl='search', type='search'),
+			'path': plugin.url_for(nextpluginurl[menutype], churl='search', menutype='search'),
 			'icon': '',
 			'thumbnail': '',
 			'info': '',
 			'is_playable': False,
 		})
-	if type=='search':
+	if menutype=='search':
 		searchkwd = plugin.keyboard(six.ensure_str(''), heading="搜尋Poku.tv")
 		searchurl = 'https://poku.tv/vodsearch/-------------.html?submit=&wd='+searchkwd
 		results = hamic.get_poku_dramas([searchurl,'search'])
 		channels = [{
 			'label': v['title'],
-			'path': plugin.url_for(nextpluginurl[type], churl=v['link'], type=nextmode[type]),
+			'path': plugin.url_for(nextpluginurl[menutype], churl=v['link'], menutype=nextmode[menutype]),
 			'icon': v['thumbnail'],
 			'thumbnail': v['thumbnail'],
 			'info': {
@@ -532,11 +552,11 @@ def list_pokuchannels(churl='default', type='parent'):
 			},
 			'is_playable': False,
 		} for v in results]
-	if type in ['drama','listepisodes']:
-		if type=='drama':
+	if menutype in ['drama','listepisodes']:
+		if menutype=='drama':
 			allpagesnum_info = hamic.get_poku_dramas([churl,'allnum'])
 			if allpagesnum_info['allpageslink']!=None:
-				iterargs = [[x, type] for x in allpagesnum_info['allpageslink']]
+				iterargs = [[x, menutype] for x in allpagesnum_info['allpageslink']]
 				if threadpool_imported:
 					pool = ThreadPool(workers)
 					results = pool.map(hamic.get_poku_dramas, iterargs)
@@ -546,51 +566,51 @@ def list_pokuchannels(churl='default', type='parent'):
 					results = [hamic.get_poku_dramas(iterarg) for iterarg in iterargs]
 				results = reduce(lambda x,y: x+y, results)
 			else:
-				results = hamic.get_poku_dramas([churl,type])
+				results = hamic.get_poku_dramas([churl,menutype])
 				results = hamic.unique(results)
 			is_playable = False
 		else:
-			results = hamic.get_poku_dramas([churl,type])
+			results = hamic.get_poku_dramas([churl,menutype])
 			is_playable = True
 		channels = [{
 			'label': v['title'],
-			'path': plugin.url_for(nextpluginurl[type], churl=(v['link']+fakemediaurl_suffix if type=='listepisodes' else v['link']), type=nextmode[type]),
+			'path': plugin.url_for(nextpluginurl[menutype], churl=(v['link']+fakemediaurl_suffix if menutype=='listepisodes' else v['link']), menutype=nextmode[menutype]),
 			'icon': v['thumbnail'],
 			'thumbnail': v['thumbnail'],
 			'info': {
-				'plot': (v['description']+v['metadata'] if type=='listepisodes' else v['description']),
+				'plot': (v['description']+v['metadata'] if menutype=='listepisodes' else v['description']),
 			},
 			'is_playable': is_playable,
 		} for v in results]
 	return plugin.finish(channels, sort_methods = ['label'])
 
-@plugin.route('/play/<type>/<churl>')
-def playchannel(churl, type="hami"):
+@plugin.route('/play/<menutype>/<churl>')
+def playchannel(churl, menutype="hami"):
 	hamic = Hamivideo(**settings)
 	#hamic.clear_other_browser_processed()
-	if type in ['linetoday','maplestage','linetv','dramaq','poku']:
+	if menutype in ['linetoday','maplestage','linetv','dramaq','poku']:
 		cchurl = churl.replace(fakemediaurl_suffix,'')
-	elif type=='direct':
+	elif menutype=='direct':
 		if churl in ['','index.m3u8'] or churl is None:
 			cchurl = plugin.keyboard(six.ensure_str(''), heading="輸入串流網址").strip()
 		else:
 			cchurl = churl
 	else:
 		cchurl = churl.replace('.m3u8','.do')
-	plugin.log.info('starting parsing '+cchurl+' by '+type)
-	if type=='maplestage':
+	plugin.log.info('starting parsing '+cchurl+' by '+menutype)
+	if menutype=='maplestage':
 		streamingurl = hamic.ret_maplestage_streamingurl_by_req(cchurl)
-		#streamingurl = hamic.get_streamingurl_of_ch(cchurl, type=type, logtype='performancelogs')
+		#streamingurl = hamic.get_streamingurl_of_ch(cchurl, menutype=menutype, logtype='performancelogs')
 		subtitleurl = None
 		#decoding discussion: https://www.52pojie.cn/thread-944303-1-1.html
 		#https://tools.ietf.org/html/rfc8216#section-4.3.2.4
 		#https://github.com/peak3d/inputstream.adaptive/wiki/Integration
 		#python someone demonstrate key decryption https://www.52pojie.cn/thread-986218-1-1.html
 		#https://www.52pojie.cn/thread-1123891-1-1.html
-	if type=='dramaq':
+	if menutype=='dramaq':
 		streamingurl = hamic.ret_dramaq_streaming_url_by_req(cchurl)
 		subtitleurl = None
-	elif type=='hami':
+	elif menutype=='hami':
 		channelid = os.path.basename(cchurl).replace('.do','')
 		print(f"channelid is {channelid}")
 		streamingurl = hamic.ret_hami_streaming_url_by_req(channelid)
@@ -598,18 +618,18 @@ def playchannel(churl, type="hami"):
 		# streamingurl = hamic.get_hami_better_q_streamingsrc(streamingurl)
 		streamingurl = streamingurl+"|Referer=https://hamivideo.hinet.net&Origin=https://hamivideo.hinet.net&User-Agent={useragent}".format(useragent=hamic.useragent)
 		subtitleurl = None
-	#elif type=='linetv':
+	#elif menutype=='linetv':
 	#	epi_data = hamic.ret_linetv_episode_data(url=cchurl)
 	#	streamingurl = epi_data['multibitrateplaylist']
 	#	subtitleurl = epi_data['epsInfo']['source'][0]['links'][0]['subtitle']
-	elif type=='viutv':
+	elif menutype=='viutv':
 		streamingurl = cchurl #hamic.ret_viutv(churl)['mpdurl']
 		subtitleurl = None
-	elif type=='poku':
+	elif menutype=='poku':
 		streamingurl = hamic.get_poku_dramas([cchurl, 'findstreamingurl'])
 		streamingurl = streamingurl['videourl']+'|'+streamingurl['req_header_str']
 		subtitleurl = None
-	elif type=='direct':
+	elif menutype=='direct':
 		patternContainsYoutube = re.search('(youtube\.com|youtu\.be/)',cchurl)
 		if patternContainsYoutube!=None:
 			youtube_video_id = re.match(".+((youtube\.com/.+v=|youtu\.be/|youtube\.com/live/)([^\s&\?]+))",cchurl).group(3)
@@ -627,8 +647,8 @@ def playchannel(churl, type="hami"):
 				cchurl = cchurl
 		streamingurl = cchurl
 		subtitleurl = None
-	elif type=='linetoday':
-		streamingurl = hamic.get_streamingurl_of_ch(cchurl, type=type, logtype='networklogs')
+	elif menutype=='linetoday':
+		streamingurl = hamic.get_streamingurl_of_ch(cchurl, menutype=menutype, logtype='networklogs')
 		subtitleurl = None
 	if re.search('(timed out|timeout|unknown error|connection refused)', streamingurl)!=None:
 		#hamic.clear_other_browser_processed()
