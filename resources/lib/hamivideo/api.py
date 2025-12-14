@@ -1,4 +1,6 @@
-﻿import requests
+﻿# %%
+from typing import List, Dict, Tuple, Sequence, Callable, Set, Literal, Optional, Any, Union
+import requests
 import htmlement
 import time
 import sys
@@ -1158,7 +1160,31 @@ class Hamivideo(object):
 		pts_TVprogram_video_url = pts_TVprogram_video_url_prefix.format(self.ptsplus_loginres['accessToken'],videoId)
 		return pts_TVprogram_video_url
 
-	def ret_linetv_main_menu_catgs(self, catgurl=None):
+	def ret_linetv_filter_options(self, linetvapidata)->List[Any]:
+		catg_filters = linetvapidata['data']['filter']['dimensions']
+		catg_filters_flattened = []
+		for filter_kind in catg_filters:
+			for filter_option in filter_kind['options']:
+				filter_option['filter_kind_id'] = filter_kind['label']
+				filter_option['filter_kind_label'] = filter_kind['label']
+				filter_option['filter_kind_priority'] = filter_kind['priority']
+				filter_option['filter_id'] = filter_option['id']
+				filter_option['type'] = 'filter'
+				filter_option['iconUrl'] = ''
+				filter_option['title'] = "篩選: {}/{}".format(filter_option['filter_kind_label'], filter_option['key'])
+				filter_option['name'] = filter_option['title']
+				filter_option['posterUrl'] = ''
+				filter_option['bannerPosterUrl'] = ''
+				filter_option['description'] = filter_option['title']
+				filter_option['verticalPosterUrl'] = ''
+				catg_filters_flattened.append(filter_option)
+		return catg_filters_flattened
+
+	def ret_linetv_main_menu_catgs(self, churl=None, filter_string_by_dramaissuer_dramatype_dramayr_viewqualification=None):
+		# c_kwargs = [dramaissuer,dramatype,dramayr,viewqualification]
+		# apply_filter = map(lambda x: x not in [None,'','default'], c_kwargs)
+		# any_apply_filter = any(apply_filter)
+		# print(f"filter_string_by_dramaissuer_dramatype_dramayr_viewqualification={filter_string_by_dramaissuer_dramatype_dramayr_viewqualification}")
 		if False:
 			return {
 				'臺劇': 'tw',
@@ -1187,85 +1213,231 @@ class Hamivideo(object):
 			target_catgsnavs = [{e['ga']: str(e['id'])} for e in target_catgsnavs] #e['id']
 			target_catgsnavs = six.moves.reduce(self.merge_two_dicts,target_catgsnavs)
 			return target_catgsnavs
-		else:
+		elif False:
 			catgurl = self.linetv_host_url if catgurl==None else catgurl
-			data = self.requesturl_get_ret(catgurl)
-			root = htmlement.fromstring(data)
+			data = self.requesturl_get_ret(catgurl)			
 			target_catgsnavs = []
 			for item in root.findall(".//div//nav//a"):
 				if re.search('/channel/',item.get('href'))!=None and item.text!=None:
+					href_url = item.get("href")
+					if re.search(self.linetv_host_url, href_url)==None:
+						href_url = "{}{}".format(self.linetv_host_url,href_url)
 					target_catgsnavs.append({
-						item.text: "{}{}".format(self.linetv_host_url,item.get("href"))
+						item.text: href_url
 						})
 			target_catgsnavs = six.moves.reduce(self.merge_two_dicts,target_catgsnavs)
 			return target_catgsnavs
-
-	def ret_linetv_search_res_dict(self, keyword):
-		# print(f"got keyword={keyword}")
-		# target_url = "https://www.linetv.tw/search?action_value={keyword}&q={keyword}&source=SEARCH_BAR".format(keyword=keyword)
-		linetv_programs_data = self.ret_linetv_dramas_metadata(catg='')
-		linetv_programs_data_needed = []
-		for element in linetv_programs_data:
-			if ('name' in element and str(element['name']).find(keyword)!=-1) or ('introduction' in element and str(element['introduction']).find(keyword)!=-1):
-				linetv_programs_data_needed.append(element)
-		return linetv_programs_data_needed
-
-	def ret_linetv_dramas_of_a_catg(self, catgurl=1):
-		researchres = re.search(r'channel/(\d+)/genre/(\d+)',catgurl)
-		#linetv_catg = self.ret_linetv_main_menu_catgs()
-		#dataurl_for_drama_in_a_category = 'https://www.linetv.tw/drama?area={}'
-		#linetv_json_drama_data_url = catgurl.replace('https://www.linetv.tw/channel/','https://api.linetv.tw/search/v1/contents/channel/')
-		#dataurl_for_drama_in_a_category = 'https://api.linetv.tw/content/v2/channels-pc-web/{}?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=9.61.1&countryCode=TW&languageId=zh'
-		#dataurl_for_drama_in_a_category = 'https://api.linetv.tw/search/v1/contents/channel/{}/sort/VIEW_COUNT_LAST_7_DAYS/order/DESC/genre/?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=9.73.1&countryCode=TW&languageId=zh'
-		#linetv_catg_api_req_header_refer = {str(v):dataurl_for_drama_in_a_category.format(v) for k,v in linetv_catg.items()}
-		dataurl_for_drama_in_a_category = "https://api.linetv.tw/search/v1/contents/channel/{}/sort/VIEW_COUNT_LAST_7_DAYS/order/DESC/genre/{}?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=9.73.1&countryCode=TW&languageId=zh"
-		dataurl_for_drama_in_a_category = dataurl_for_drama_in_a_category.format(researchres.group(1),researchres.group(2))
-		#strcatg = str(catg)
-		data = self.requesturl_get_ret(dataurl_for_drama_in_a_category)
-		data = json.loads(data)
-		if False:
-			root = htmlement.fromstring(catg_html)
-			targetdramadata = root.findall(".//script")
-			targetdramadata = self.ret_domelement_with_text('optimist', targetdramadata)[0]
-			targetdramadata = targetdramadata.text.replace('window.__INITIAL_STATE__ = ', '')
-			targetdramadata = self.parse_json_response(json.loads(targetdramadata))
-			targetdramadata = targetdramadata['entities']['dramas']
-			#targetdramadata = targetdramadata.values()
-			targetdramadata = list(six.viewvalues(targetdramadata))
-			targetdramadata_catgid = targetdramadata[0]['area_id']
-			targetdramadata_ids = [d['drama_id'] for d in targetdramadata]
-			responsejsondramas = self.ret_linetv_dramas_metadata(catg)
-			for drama in responsejsondramas:
-				try:
-					if str(drama['area_id'])==str(targetdramadata_catgid) and not(drama['drama_id'] in targetdramadata_ids):
-						targetdramadata.append(drama)
-				except:
-					continue
-			return targetdramadata
-		elif False:
-			dramalist = six.moves.reduce(lambda x,y: x+[y], data['data']['home'], [])
-			dramalist = six.moves.reduce(lambda x,y: x+y['data'], dramalist, [])
-			dramalist = six.moves.filter(lambda x: ('type' in x) and (x['type']=='drama'), dramalist)
-			#dramalist = six.moves.filter(lambda x: x['type']=='drama', dramalist)
-			dramalist = list(dramalist)
-			for dramalist_i, drama in enumerate(dramalist):
-				for dramadatakey in ['description','info']:
-					if dramadatakey not in drama:
-						drama[dramadatakey] = ''
-			return dramalist
+		elif churl is None or churl==self.linetv_host_url:
+			data = self.requesturl_get_ret(self.linetv_host_url)
+			root = htmlement.fromstring(data)
+			linetv_home_json = filter(lambda x: x.text is not None and x.text.find("window.__INITIAL_STATE__")!=-1, root.findall(".//script"))
+			linetv_home_json = list(linetv_home_json)[0].text
+			linetv_home_json = linetv_home_json.replace('window.__INITIAL_STATE__ = ','')
+			linetv_home_json = json.loads(linetv_home_json)
+			linetv_home_json = linetv_home_json['channelList']['desktop']
+			# name description verticalPosterUrl verticalPosterUrl
+			for elem_i, elem in enumerate(linetv_home_json):
+				linetv_home_json[elem_i]['description'] = ''
+				linetv_home_json[elem_i]['verticalPosterUrl'] = ''
+				linetv_home_json[elem_i]['verticalPosterUrl'] = ''
+			# [{'feedId': 13, 'id': 1, 'name': '戲劇'},...]
+			return linetv_home_json
+		elif filter_string_by_dramaissuer_dramatype_dramayr_viewqualification not in ["",None,"default"]:
+			appliedfilters = filter_string_by_dramaissuer_dramatype_dramayr_viewqualification
+			# appliedfilters = appliedfilters.decode('utf-8')
+			appliedfilters = base64.urlsafe_b64decode(appliedfilters)
+			appliedfilters = appliedfilters.decode('utf-8')
+			appliedfilters = json.loads(appliedfilters)
+			appliedfilters_as_string = {}
+			for appliedfilter in appliedfilters:
+				appliedfilter_priority = appliedfilter['filter_kind_priority']
+				appliedfilters_as_string[appliedfilter_priority] = str(appliedfilter['filter_id'])
+			appliedfilters_as_string = dict(sorted(appliedfilters_as_string.items()))
+			appliedfilters_as_string = [apf for apf_key, apf in appliedfilters_as_string.items()]
+			appliedfilters_as_string = "_".join(appliedfilters_as_string)
+			req_url_template = 'https://api.linetv.tw/search/v1/contents/channel/{churl}/sort/VIEW_COUNT_LAST_7_DAYS/order/DESC/genre/{appliedfilters}?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=10.78.0&countryCode=TW&languageId=zh'
+			data_unserialized = self.requesturl_get_ret(
+				req_url_template.format(churl=churl, appliedfilters=appliedfilters_as_string)
+			)
+			data = json.loads(data_unserialized)
+			channels = self.recursive_filter_and_flatten_nested_dict(
+				data,
+				{'name':None,'introduction':None,'type':None,'authorized':None,'totalEpisodes':None}
+			)
+			for channel_i, channel in enumerate(channels):
+				channels[channel_i]['description'] = channel['introduction']
+				channels[channel_i]['verticalPosterUrl'] = channel['portraitPosterUrl']
+				channels[channel_i]['id'] = channel['contentId']
+			usable_filters = self.ret_linetv_main_menu_catgs(churl=churl)
+			usable_filters = usable_filters['catg_filters_flattened']
+			return {
+				'catg_filters_flattened': usable_filters,
+				'dramadata': channels
+			}
 		else:
-			data = data['data']
-			for dramalist_i, drama in enumerate(data):
-				data[dramalist_i] = {
-					'id': drama['contentId'],
-					'name': drama['name'],
-					'type': drama['type'],
-					'info': drama['introduction'],
-					'description': drama['introduction'],
-					'posterUrl': drama['landscapePosterUrl'],
-					'verticalPosterUrl': drama['portraitPosterUrl'],
-				}
-			return data
+			data_unserialized = self.requesturl_get_ret('https://api.linetv.tw/content/v2/channels-pc-web/{}'.format(churl))
+			# data_unserialized = hamic.requesturl_get_ret('https://api.linetv.tw/content/v2/channels-pc-web/{}'.format(2))
+			data = json.loads(data_unserialized)
+			catg_filters_flattened = self.ret_linetv_filter_options(data)
+			dramadata = []
+			for single_title_data in data['data']['home']:
+				single_title_data = single_title_data['data']
+				for item in single_title_data:
+					if 'name' not in item and 'title' in item:
+						item['name'] = item['title']
+					if 'description' not in item:
+						item['description'] = item['title'] if 'title' in item else ''
+					item['verticalPosterUrl'] = '' if 'verticalPosterUrl' not in item else item['verticalPosterUrl']
+					if 'posterUrl' in item:
+						dramadata.append(item)
+			return {
+				'catg_filters_flattened': catg_filters_flattened,
+				'dramadata': dramadata
+			}
+
+	def ret_linetv_new_filter_url_prefix_code(self, churl, existed_filter_string_by_dramaissuer_dramatype_dramayr_viewqualification:str="", option_filter:Dict[str,Any]={})->str:
+		if existed_filter_string_by_dramaissuer_dramatype_dramayr_viewqualification in [None,"","default",{},[]]:
+			applied_filters_codes = []
+		else:
+			applied_filters_codes = base64.urlsafe_b64decode(existed_filter_string_by_dramaissuer_dramatype_dramayr_viewqualification)
+			applied_filters_codes = applied_filters_codes.decode('utf-8')
+			applied_filters_codes = json.loads(applied_filters_codes)
+		applied_filters_codes.append(option_filter)
+		applied_filters_codes = json.dumps(applied_filters_codes, ensure_ascii=False, sort_keys=True, indent=0)
+		applied_filters_codes = applied_filters_codes.encode('utf-8')
+		applied_filters_codes = base64.urlsafe_b64encode(applied_filters_codes)
+		url_safe_string = applied_filters_codes.decode('utf-8')
+		return url_safe_string
+
+	def is_dict_match_cond_keys(self, inputdict, cond:Dict[str,Any]=None)->bool:
+		if not isinstance(inputdict, dict):
+			return False
+		else:
+			is_matched_all_keys = all([(c in inputdict) for c in cond.keys()])
+			if is_matched_all_keys:
+				is_matched = []
+				for key, value in cond.items():
+					if value is None:
+						is_matched.append(True)
+					else:
+						is_matched.append(re.search(value, inputdict[key]) is not None)
+				is_matched = all(is_matched)
+			else:
+				is_matched = False
+			return is_matched
+
+	def recursive_filter_and_flatten_nested_dict(self, inputdict, cond:Dict[str,Any]=None)->List[Union[Dict[str,Any],None]]:
+		outputs = []
+		if isinstance(inputdict, dict):
+			res_is_dict_match_cond = self.is_dict_match_cond_keys(inputdict, cond=cond)
+			if res_is_dict_match_cond:
+				outputs.append(
+					{k:v for k,v in inputdict.items() if not (
+						(v is isinstance(v,dict)) or
+						(v is isinstance(v,list))
+						)
+					}
+				)
+			tp_outputs = []
+			for k,v in inputdict.items():
+				if isinstance(v, dict) or isinstance(v, list):
+					tp_outputs.extend(
+						self.recursive_filter_and_flatten_nested_dict(v, cond=cond)
+					)
+			outputs.extend(tp_outputs)
+		elif isinstance(inputdict, list):
+			tp_outputs = []
+			for d in inputdict:
+				elements_matched = self.recursive_filter_and_flatten_nested_dict(d, cond=cond)
+				tp_outputs.extend(elements_matched)
+			outputs.extend(tp_outputs)
+		elif isinstance(inputdict, str):
+			return []
+		return [o for o in outputs if o is not None]
+
+	def ret_linetv_search_res_dict(self, keyword:str):
+		keyword_url_encoded = six.moves.urllib.parse.quote_plus(keyword)
+		target_url = "https://www.linetv.tw/search?q={keyword}&source=SEARCH_MORE".format(keyword=keyword)
+		target_content = self.requesturl_get_ret(
+			target_url.format(keyword=keyword_url_encoded)
+			)
+		root = htmlement.fromstring(target_content)
+		linetv_home_json = filter(lambda x: x.text is not None and x.text.find("window.__INITIAL_STATE__")!=-1, root.findall(".//script"))
+		linetv_home_json = list(linetv_home_json)[0].text
+		linetv_home_json = linetv_home_json[linetv_home_json.find("{"):(linetv_home_json.rfind("}")+1)]
+		linetv_home_json = json.loads(linetv_home_json)
+		fastchannels = self.recursive_filter_and_flatten_nested_dict(
+			linetv_home_json,
+			cond={'epsNum':None, 'dramaName':keyword}
+		)
+		fastchannels.extend(
+			self.recursive_filter_and_flatten_nested_dict(
+				linetv_home_json,
+				cond={'epsNum':None, 'epsTitle':keyword}
+			)
+		)
+		return fastchannels
+
+	def ret_linetv_dramas_of_a_search_res(self, keyword:str)->List[Dict[str,Any]]:
+		search_res_dict = self.ret_linetv_search_res_dict(keyword=keyword)
+		available_dramas = [{
+			'name':item['dramaName'],
+			'id':item['dramaId'],
+			'posterUrl':item['horizontalPosterUrl'],
+			'verticalPosterUrl':item['verticalPosterUrl'],
+			'info':'',
+			'description':''
+		} for item in search_res_dict]
+		unique_list_concise = [dict(t) for t in {tuple(d.items()) for d in available_dramas}]
+		return unique_list_concise
+
+	# def ret_linetv_dramas_of_a_catg(self, catgurl=1):
+	# 	researchres = re.search(r'channel/(\d+)/genre/(\d+)',catgurl)
+	# 	dataurl_for_drama_in_a_category = "https://api.linetv.tw/search/v1/contents/channel/{}/sort/VIEW_COUNT_LAST_7_DAYS/order/DESC/genre/{}?appId=062097f1b1f34e11e7f82aag22000aee&chocomemberAppId=86a6b258-ac30-4816-bc14-a31e514226d7&version=9.73.1&countryCode=TW&languageId=zh"
+	# 	dataurl_for_drama_in_a_category = dataurl_for_drama_in_a_category.format(researchres.group(1),researchres.group(2))
+	# 	data = self.requesturl_get_ret(dataurl_for_drama_in_a_category)
+	# 	data = json.loads(data)
+	# 	if False:
+	# 		root = htmlement.fromstring(catg_html)
+	# 		targetdramadata = root.findall(".//script")
+	# 		targetdramadata = self.ret_domelement_with_text('optimist', targetdramadata)[0]
+	# 		targetdramadata = targetdramadata.text.replace('window.__INITIAL_STATE__ = ', '')
+	# 		targetdramadata = self.parse_json_response(json.loads(targetdramadata))
+	# 		targetdramadata = targetdramadata['entities']['dramas']
+	# 		targetdramadata = list(six.viewvalues(targetdramadata))
+	# 		targetdramadata_catgid = targetdramadata[0]['area_id']
+	# 		targetdramadata_ids = [d['drama_id'] for d in targetdramadata]
+	# 		responsejsondramas = self.ret_linetv_dramas_metadata(catg)
+	# 		for drama in responsejsondramas:
+	# 			try:
+	# 				if str(drama['area_id'])==str(targetdramadata_catgid) and not(drama['drama_id'] in targetdramadata_ids):
+	# 					targetdramadata.append(drama)
+	# 			except:
+	# 				continue
+	# 		return targetdramadata
+	# 	elif False:
+	# 		dramalist = six.moves.reduce(lambda x,y: x+[y], data['data']['home'], [])
+	# 		dramalist = six.moves.reduce(lambda x,y: x+y['data'], dramalist, [])
+	# 		dramalist = six.moves.filter(lambda x: ('type' in x) and (x['type']=='drama'), dramalist)
+	# 		dramalist = list(dramalist)
+	# 		for dramalist_i, drama in enumerate(dramalist):
+	# 			for dramadatakey in ['description','info']:
+	# 				if dramadatakey not in drama:
+	# 					drama[dramadatakey] = ''
+	# 		return dramalist
+	# 	else:
+	# 		data = data['data']
+	# 		for dramalist_i, drama in enumerate(data):
+	# 			data[dramalist_i] = {
+	# 				'id': drama['contentId'],
+	# 				'name': drama['name'],
+	# 				'type': drama['type'],
+	# 				'info': drama['introduction'],
+	# 				'description': drama['introduction'],
+	# 				'posterUrl': drama['landscapePosterUrl'],
+	# 				'verticalPosterUrl': drama['portraitPosterUrl'],
+	# 			}
+	# 		return data
 
 	def ret_linetv_dramas_metadata(self, catg=''):
 		linetv_catg = self.ret_linetv_main_menu_catgs()
@@ -1338,7 +1510,8 @@ class Hamivideo(object):
 		else:
 			responsejson = self.requesturl_get_ret("https://www.linetv.tw/api/dramaInfo/{dramaid}".format(dramaid=dramaid), headers=linetv_api_req_header)
 			responsejson = self.parse_json_response(responsejson)
-			responsejson = responsejson['info']
+			print(f"responsejson is {responsejson}")
+			# responsejson = responsejson['info']
 			return responsejson
 
 	def ret_linetv_drama_description_multi_run_wrapper(self, args):
@@ -1385,6 +1558,7 @@ class Hamivideo(object):
 		}
 		descriptions_data = self.requesturl_get_ret('https://static.linetv.tw/seo/drama/seo_sd_{drama_id}.json'.format(drama_id=drama_id), headers=linetv_api_req_header)
 		descriptions_data = self.parse_json_response(descriptions_data)
+		print(f"descriptions_data is {descriptions_data}")
 		return descriptions_data
 
 	def ret_linetv_dramas_with_description_of_a_catg(self, catg):
@@ -1851,7 +2025,7 @@ sec-fetch-site: same-site
 upgrade-insecure-requests: 1
 '''
 
-
+# %%
 if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser()
@@ -1866,13 +2040,8 @@ if __name__ == '__main__':
 		settings = dict()
 		hamic = Hamivideo()
 		if False: #for debugging
-			#res = hamic.ret_linetv_dramas_of_a_catg("kid")
-			#res = hamic.ret_linetv_dramas_metadata()
 			res = hamic.ret_linetv_drama(churl)
 			episode_args = [(int(churl), c) for c in range(1, res['current_eps']+1)]
-			#res = hamic.ret_linetv_dramas_of_a_catg("kid")[0]
-			#res = hamic.ret_linetv_main_menu_catgs()
-			#res = type(res)
 			pool = ThreadPool(4)
 			episodedatas = pool.map(hamic.ret_linetv_episode_data_multi_run_wrapper, episode_args)
 			print(episodedatas)
@@ -1897,7 +2066,6 @@ if __name__ == '__main__':
 		elif type=='hami':
 			channelid = os.path.basename(cchurl).replace('.do','')
 			streamingurl = hamic.ret_hami_streaming_url_by_req(channelid)
-			# streamingurl = hamic.get_hami_better_q_streamingsrc(streamingurl)
 			subtitleurl = None
 		elif type=='linetv':
 			epi_data = hamic.ret_linetv_episode_data(url=cchurl)

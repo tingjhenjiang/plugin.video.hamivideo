@@ -2,6 +2,7 @@
 from xbmcswift2 import Plugin, xbmc, xbmcaddon, xbmcgui, xbmcplugin
 from resources.lib.hamivideo.api import Hamivideo
 import base64, time, os
+from functools import reduce
 try:
 	from multiprocessing.dummy import Pool as ThreadPool
 	threadpool_imported = True
@@ -64,7 +65,7 @@ def index():
 	}]
 	linetvlst = [{
 		'label': 'Linetv channels',
-		'path': plugin.url_for('list_linetvchannels', churl="default", menutype='parent', total_eps='default'),
+		'path': plugin.url_for('list_linetvchannels', churl="default", menutype='parent', filter_string_by_dramaissuer_dramatype_dramayr_viewqualification='default'),
 		'is_playable': False
 	}]
 	ptspluslst = [{
@@ -155,59 +156,72 @@ def list_linetodaychannels():
 	length_of_ch = str(len(channels))
 	return plugin.finish(channels)
 
-@plugin.route('/listlinetvchannels/<menutype>/<churl>')
-def list_linetvchannels(churl="", menutype="parent"):
+@plugin.route('/listlinetvchannels/<menutype>/<churl>/<filter_string_by_dramaissuer_dramatype_dramayr_viewqualification>')
+def list_linetvchannels(churl="", menutype="parent", filter_string_by_dramaissuer_dramatype_dramayr_viewqualification='default'):
 	hamic = Hamivideo(**settings)
-	if menutype=="parent":
-		channels = hamic.ret_linetv_main_menu_catgs(hamic.linetv_host_url)
-		channels = [{
-			'label': k,
-			'path': plugin.url_for('list_linetvchannels', churl=v, menutype='listsubcatgs'),
-			'icon': '',
-			'thumbnail': '',
-			'is_playable': False,
-		} for k,v in channels.items()]
-		channels.append({
-			'label': '搜尋影片',
-			'path': plugin.url_for('list_linetvchannels', churl='first', menutype='search'),
-			'icon': '',
-			'thumbnail': '',
-			'is_playable': False,
-		})
-	if menutype=="search":
-		if churl=='first':
-			keyword = plugin.keyboard(six.ensure_str(''), heading="輸入搜尋關鍵字").strip()
-			channels = hamic.ret_linetv_search_res_dict(keyword=keyword)
-			channels = [{
-				'label': c['name'] if 'name' in c else None,
-				'label2': c['introduction'] if 'introduction' in c else None,
-				'path': plugin.url_for('list_linetvchannels', churl=c['drama_id'], menutype='listeps'),
-				'icon': c['poster_url'] if 'poster_url' in c else None,
-				'thumbnail': c['vertical_poster'] if 'poster_url' in c else None,
-				'info': None, #c['info'],
+	if menutype=="parent" or menutype=="listsubcatgs":
+		initial_fetch_arg = hamic.linetv_host_url if menutype=="parent" else churl
+		retrieved_channels = hamic.ret_linetv_main_menu_catgs(churl=initial_fetch_arg, filter_string_by_dramaissuer_dramatype_dramayr_viewqualification=filter_string_by_dramaissuer_dramatype_dramayr_viewqualification)
+		if isinstance(retrieved_channels,dict):
+			retrieved_channels = reduce(lambda x,y: x+y, list(retrieved_channels.values()), [])
+		# plugin.log.info(f"retrieved_channels={retrieved_channels}")
+		channels = []
+		for channel in retrieved_channels:
+			v = {
+				'label': channel['name'],
+				'label2': channel['description'],
+				'icon': channel['verticalPosterUrl'],
+				'thumbnail': channel['verticalPosterUrl'],
 				'is_playable': False,
-			} for c in channels]
-	if menutype=="listsubcatgs":
-		channels = hamic.ret_linetv_main_menu_catgs(churl)
-		channels = [{
-			'label': k,
-			'path': plugin.url_for('list_linetvchannels', churl=v, menutype='listdramas'),
-			'icon': '',
-			'thumbnail': '',
-			'is_playable': False,
-		} for k,v in channels.items()]
-	if menutype=="listdramas":
-		#channels = hamic.ret_linetv_dramas_with_description_of_a_catg(churl)
-		channels = hamic.ret_linetv_dramas_of_a_catg(churl)
-		channels = [{
-			'label': c['name'],
-			'label2': c['description'],
-			'path': plugin.url_for('list_linetvchannels', churl=c['id'], menutype='listeps'),
-			'icon': c['posterUrl'],
-			'thumbnail': c['verticalPosterUrl'],
-			'info': c['info'],
-			'is_playable': False,
-		} for c in channels]
+			}
+			if 'filter_kind_id' in channel:
+				option_filter = {
+					'filter_kind_priority':channel['filter_kind_priority'],
+					'filter_id':channel['filter_id']
+				}
+				merged_existed_filter_string_by_dramaissuer_dramatype_dramayr_viewqualification = hamic.ret_linetv_new_filter_url_prefix_code(
+					churl,
+					filter_string_by_dramaissuer_dramatype_dramayr_viewqualification,
+					option_filter
+				)
+				v['path'] = plugin.url_for('list_linetvchannels', churl=churl, menutype='listsubcatgs', filter_string_by_dramaissuer_dramatype_dramayr_viewqualification=merged_existed_filter_string_by_dramaissuer_dramatype_dramayr_viewqualification)
+			else:
+				if menutype=="parent":
+					v['path'] = plugin.url_for('list_linetvchannels', churl=channel['id'], menutype='listsubcatgs', filter_string_by_dramaissuer_dramatype_dramayr_viewqualification=filter_string_by_dramaissuer_dramatype_dramayr_viewqualification)
+				else:
+					v['path'] = plugin.url_for('list_linetvchannels', churl=channel['id'], menutype='listeps', filter_string_by_dramaissuer_dramatype_dramayr_viewqualification=filter_string_by_dramaissuer_dramatype_dramayr_viewqualification) #link[channel['type']]
+			channels.append(v)
+		if menutype=="parent":
+			channels.append({
+				'label': '搜尋影片',
+				'path': plugin.url_for('list_linetvchannels', churl='first', menutype='search', filter_string_by_dramaissuer_dramatype_dramayr_viewqualification=filter_string_by_dramaissuer_dramatype_dramayr_viewqualification),
+				'icon': '',
+				'thumbnail': '',
+				'is_playable': False,
+			})
+		# plugin.log.info("python version")
+		# plugin.log.info(sys.version)
+	if menutype=="listdramas" or (menutype=="search" and churl=="first"):
+		if menutype=="listdramas":
+			# channels = hamic.ret_linetv_dramas_of_a_catg(churl)
+			retrieved_channels = hamic.ret_linetv_main_menu_catgs(churl, filter_string_by_dramaissuer_dramatype_dramayr_viewqualification=filter_string_by_dramaissuer_dramatype_dramayr_viewqualification)
+		if menutype=="search":
+			if churl=='first':
+				keyword = plugin.keyboard(six.ensure_str(''), heading="輸入搜尋關鍵字").strip()
+				retrieved_channels = hamic.ret_linetv_dramas_of_a_search_res(keyword=keyword)
+		if isinstance(retrieved_channels,dict):
+			retrieved_channels = reduce(lambda x,y: x+y, list(retrieved_channels.values()), [])
+		channels = [] # for reorganizing filter options
+		for channel in retrieved_channels:
+			channels.append({
+				'label': c['name'],
+				'label2': c['description'],
+				'path': plugin.url_for('list_linetvchannels', churl=c['id'], menutype='listeps', filter_string_by_dramaissuer_dramatype_dramayr_viewqualification=filter_string_by_dramaissuer_dramatype_dramayr_viewqualification),
+				'icon': c['posterUrl'],
+				'thumbnail': c['verticalPosterUrl'],
+				'info': c['info'],
+				'is_playable': False,
+			})
 	if menutype=='listeps':
 		drama_id = int(churl)
 		drama = hamic.ret_linetv_drama(drama_id, method='needparse')
@@ -268,6 +282,17 @@ def list_ptspluschannels(churl="", menutype="parent"):
 			'thumbnail': '',
 			'is_playable': False,
 		} for v in channels]
+		channels.append({
+			'label': '搜尋影片(尚未完成開發)',
+			'path': plugin.url_for('list_ptspluschannels', churl='first', menutype='search'),
+			'icon': '',
+			'thumbnail': '',
+			'is_playable': False,
+		})
+	if menutype=="search":
+		if churl=='first':
+			keyword = plugin.keyboard(six.ensure_str(''), heading="輸入搜尋關鍵字").strip()
+			channels = []
 	if menutype=="listtopics":
 		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_guide', queryStr=churl)
 		plugin.log.info('genreId is: '+churl)
@@ -564,7 +589,7 @@ def list_pokuchannels(churl='default', menutype='parent'):
 					pool.join()
 				else:
 					results = [hamic.get_poku_dramas(iterarg) for iterarg in iterargs]
-				results = reduce(lambda x,y: x+y, results)
+				results = reduce(lambda x,y: x+y, results, [])
 			else:
 				results = hamic.get_poku_dramas([churl,menutype])
 				results = hamic.unique(results)
