@@ -283,16 +283,27 @@ def list_ptspluschannels(churl="", menutype="parent"):
 			'is_playable': False,
 		} for v in channels]
 		channels.append({
-			'label': '搜尋影片(尚未完成開發)',
+			'label': '搜尋影片',
 			'path': plugin.url_for('list_ptspluschannels', churl='first', menutype='search'),
 			'icon': '',
 			'thumbnail': '',
 			'is_playable': False,
 		})
 	if menutype=="search":
+		import six
 		if churl=='first':
 			keyword = plugin.keyboard(six.ensure_str(''), heading="輸入搜尋關鍵字").strip()
-			channels = []
+			channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_search', queryStr=keyword)
+			print(f"channels={channels}")
+			channels = [{
+				'label': "{} {}".format(v['name'], v['seasonCount']),
+				'label2': '',
+				'path': plugin.url_for('list_ptspluschannels', churl=v['id'], menutype='listeps'),
+				'info': {'plot': v['introduction']},
+				'thumbnail': v['latestCover'],
+				'icon': v['latestCover'],
+				'is_playable': False,
+			} for v in channels]
 	if menutype=="listtopics":
 		channels = hamic.ret_ptsplus_menu_catgs(mode='ptsplus_graphql_guide', queryStr=churl)
 		plugin.log.info('genreId is: '+churl)

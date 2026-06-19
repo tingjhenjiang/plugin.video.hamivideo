@@ -108,6 +108,7 @@ class Hamivideo(object):
 		self.workers = workers
 		self.hamiloginidpw = (settings['hamiloginidpw'][0],settings['hamiloginidpw'][1])
 		self.ptsplus_loginres = None
+		self.ptsplus_req_apiurl = 'https://www.ptsplus.tv/graphql'
 
 	def try_multi_run(self,sp_multi_run_func,spargs):
 		try:
@@ -874,7 +875,7 @@ class Hamivideo(object):
 					# "authorization":"MTE2MjBjYjgtOTczYy00ZDY5LTg0YmItYmE0ZjcxZDAyNDYwOkZoVlhVdTl4Zmp4NmR3TlVNd0Fw"
 					"account":loginid,
 					"password":loginpw,
-					"checksum": self.settings['ptsplusloginchecksum']
+					"checksum": self.settings['ptsplusloginchecksum'].strip()
 				}
 			login_req_header = {
 				'accept': 'application/json, text/plain, */*',
@@ -894,7 +895,7 @@ class Hamivideo(object):
 				# 'sec-fetch-mode': 'cors',
 				# 'sec-fetch-site': 'same-origin',
 				'user-agent': self.useragent,
-				'x-api-key': self.settings['ptsplusloginxapikey'],	
+				'x-api-key': self.settings['ptsplusloginxapikey'].strip(),	
 				}
 			# print(f'loginpayload is {loginpayload} login_req_header is {login_req_header}')
 			# reqauthidpw = ('11620cb8-973c-4d69-84bb-ba4f71d02460','FhVXUu9xfjx6dwNUMwAp')
@@ -905,7 +906,7 @@ class Hamivideo(object):
 			loginres = self.parse_json_response(loginres)
 			# print(f'loginres is {loginres}')
 			auth_after_login = {
-				'Authorization':'Bearer '+loginres['accessToken']
+				'Authorization':'Bearer '+loginres['accessToken'].strip()
 			}
 			self.gset_login_inf_fromtxt(src='ptsplus',mode='w',data=auth_after_login)
 			reqheader_after_login = self.merge_two_dicts(login_req_header,auth_after_login)
@@ -958,24 +959,27 @@ class Hamivideo(object):
 				}
 			""",
 			'ptsplus_graphql_livestream' : """
+
+			""",
+			'ptsplus_graphql_search' : """
 				[
 					{
-						"operationName": "Livestreams",
-						"variables": {
-							"limit": 30,
-							"offset": 0,
-							"sort": "LISTING_FROM_DESC",
-							"pinned": true
+						"operationName":"SearchProgramsWithFallbackRecommendation",
+						"variables":{
+							"offset":0,
+							"limit":12,
+							"searchTerm":"TARGETKWD"
 						},
-						"query": "query Livestreams($limit: Int, $offset: Int, $searchTerm: String, $sort: LivestreamSortEnum!, $pinned: Boolean) {\n  livestreams(\n    limit: $limit\n    offset: $offset\n    searchTerm: $searchTerm\n    sort: $sort\n    pinned: $pinned\n  ) {\n    id\n    pageInfo {\n      ...PageInfo\n      __typename\n    }\n    records {\n      ...LivestreamFragment\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment PageInfo on PageInfo {\n  id\n  totalRecords\n  hasNext\n  totalPages\n  __typename\n}\n\nfragment LivestreamFragment on Livestream {\n  id\n  index\n  cover\n  name\n  source\n  __typename\n}"
+						"query":"query SearchProgramsWithFallbackRecommendation($limit: Int, $offset: Int, $searchTerm: String) {  searchProgramsWithFallbackRecommendation(    limit: $limit    offset: $offset    searchTerm: $searchTerm  ) {    pageInfo {      ...PageInfo      __typename    }    records {      ...ProgramDetails      __typename    }    isRecommendation    __typename  }}fragment PageInfo on PageInfo {  id  totalRecords  hasNext  totalPages  __typename}fragment ProgramDetails on Program {  id  original  useDRM  episodeCount  latestCover  bannerLOGO  bannerCover  name  introduction  rating  seasonCount  type  awards  categories  seasons {    id    crews {      id      role      name      __typename    }    bannerLOGO    releaseMonth    releaseYear    canPurchase    episodes {      id      name      cover      restrictedReason      __typename    }    __typename  }  tags  isFavorite  __typename}"
 					},
 					{
-						"operationName": "LivestreamMarketingLabels",
-						"variables": {
-							"offset": 0,
-							"limit": 30
+						"operationName":"SearchLivestreams",
+						"variables":{
+							"offset":0,
+							"limit":12,
+							"searchTerm":"TARGETKWD"
 						},
-						"query": "query LivestreamMarketingLabels($limit: Int, $offset: Int, $searchTerm: String) {\n  livestreamMarketingLabels(\n    limit: $limit\n    offset: $offset\n    searchTerm: $searchTerm\n  ) {\n    id\n    pageInfo {\n      ...PageInfo\n      __typename\n    }\n    records {\n      id\n      name\n      livestreams {\n        ...LivestreamFragment\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment PageInfo on PageInfo {\n  id\n  totalRecords\n  hasNext\n  totalPages\n  __typename\n}\n\nfragment LivestreamFragment on Livestream {\n  id\n  index\n  cover\n  name\n  source\n  __typename\n}"
+						"query":"query SearchLivestreams($limit: Int, $offset: Int, $searchTerm: String) {  searchLivestreams(    limit: $limit    offset: $offset    searchTerm: $searchTerm    includeUpcoming: true  ) {    pageInfo {      ...PageInfo      __typename    }    records {      ...LivestreamFragment      restrictedReason      startFrom      __typename    }    __typename  }}fragment PageInfo on PageInfo {  id  totalRecords  hasNext  totalPages  __typename}fragment LivestreamFragment on Livestream {  id  index  cover  name  source  __typename}"
 					}
 				]
 			"""
@@ -985,15 +989,16 @@ class Hamivideo(object):
 			'ptsplus_graphql_videomarketinglabel' : "2f3eeba3-a4ee-4359-9f89-73fa7c204ace",
 			'ptsplus_graphql_programdetail' : "94861b17-fe6a-4bc2-b3e9-a563b455c690",
 			'ptsplus_graphql_episode' : "cbcef1b9-de07-490e-b888-332bda733de6",
-			'ptsplus_graphql_livestream' : ""
+			'ptsplus_graphql_livestream' : "",
+			'ptsplus_graphql_search' : "TARGETKWD"
 		}
 		if mode in ['maincatg','ptsplus_graphql_livestream']:
 			return graphql_settings[mode]
 		else:
 			return graphql_settings[mode].replace(replace_patterns[mode],queryStr)
 
-	def ret_ptsplus_menu_catgs(self,mode='maincatg', queryStr='KIDS_AND_FAMILY', loginidpw=None):
-		ptsplus_req_apiurl = 'https://www.ptsplus.tv/graphql'
+	def ret_ptsplus_menu_catgs(self, mode='maincatg', queryStr='KIDS_AND_FAMILY', loginidpw=None):
+		ptsplus_req_apiurl = self.ptsplus_req_apiurl
 		# self.settings[src+'login_cookieinf']['cookieinf']
 
 		# self.ptspluslogin(ptsplusloginidpw=loginidpw)
@@ -1045,7 +1050,6 @@ class Hamivideo(object):
 			if "error" not in responsejson:
 				retryfetch = False
 			retry_n += 1
-		# ptsplus_graphql_guide ptsplus_graphql_videomarketinglabel ptsplus_graphql_programdetail ptsplus_graphql_episode ptsplus_graphql_livestream
 		if mode=='ptsplus_graphql_guide':
 			responsedata = responsejson["data"]["guides"]
 			return responsedata
@@ -1074,6 +1078,13 @@ class Hamivideo(object):
 			setcookies = session.cookies.get_dict()
 			responsedata['cookie'] = setcookies
 			return responsedata
+		if mode=='ptsplus_graphql_search':
+			# print(f"responsejson={responsejson}")
+			responsedata_prog = responsejson[0]['data']['searchProgramsWithFallbackRecommendation']['records']
+			responsedata_lives = responsejson[1]['data']['searchLivestreams']['records']
+			responsedata = responsedata_prog
+			return responsedata
+
 
 	def ret_ptsplus_programs_under_a_mainsubcatg(self,loginidpw=None): #,genre=1,subgenre=1,limit=20,loginidpw=None
 		graphql_req = self.ret_ptsplus_graphql(mode='maincatg').items()
@@ -1142,7 +1153,6 @@ class Hamivideo(object):
 				return "error in ret_ptsplus_youtube_video_url at {youtube_video_id}".format(youtube_video_id=youtube_video_id)
 		else:
 			return "plugin://plugin.video.youtube/play/?video_id="+youtube_video_id
-
 
 	def ptsplus_convert_poster_img_json_format(self,programslist):
 		for program_i,program in enumerate(programslist):
